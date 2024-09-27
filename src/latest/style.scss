@@ -1,5 +1,20 @@
 @import "../common/styles/style.scss";
 
+.main {
+    display: flex;
+    flex-direction: row;
+    @include media-breakpoint-down(md) {
+        flex-direction: column;
+        > div {
+            height: 50%;
+        }
+    }
+    @include media-breakpoint-up(md) {
+        > div {
+            width: 50%;
+        }
+    }
+}
 
 code.code-pill {
     border-radius: $border-radius-sm;
@@ -80,6 +95,10 @@ code.code-pill {
     }
 }
 
-.input-group {
+nav .input-group {
     width: initial !important;
+}
+
+.height-50cqh {
+    height: 50cqh;
 }

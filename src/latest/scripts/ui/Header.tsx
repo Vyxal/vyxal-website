@@ -1,7 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
 import { Button, ButtonGroup, Container, Dropdown, InputGroup, Nav, Navbar, Spinner } from "react-bootstrap";
 import type { VyRunnerState } from "./Theseus";
-import { Input } from "./dialogs/InputDialog";
 import logo from "../../../common/assets/logo-64.png";
 
 type ShowDialogButtonProps = {
@@ -23,15 +22,13 @@ type HeaderProps = {
     state: VyRunnerState,
     onRunClicked: () => unknown,
     flags: Set<string>,
-    inputs: Input[],
     setShowFlagsDialog: Dispatch<SetStateAction<boolean>>,
     setShowSettingsDialog: Dispatch<SetStateAction<boolean>>,
     setShowShareDialog: Dispatch<SetStateAction<boolean>>,
-    setShowInputDialog: Dispatch<SetStateAction<boolean>>,
     setShowElementOffcanvas: Dispatch<SetStateAction<boolean>>,
 };
 
-export default function Header({ state, onRunClicked, flags, inputs, setShowFlagsDialog, setShowSettingsDialog, setShowShareDialog, setShowInputDialog, setShowElementOffcanvas }: HeaderProps) {
+export default function Header({ state, onRunClicked, flags, setShowFlagsDialog, setShowSettingsDialog, setShowShareDialog, setShowElementOffcanvas }: HeaderProps) {
     return (
         <Navbar className="bg-body-tertiary flex-wrap">
             <Container fluid className="justify-content-start">
@@ -47,14 +44,6 @@ export default function Header({ state, onRunClicked, flags, inputs, setShowFlag
                             ) : null
                         }
                         <ShowDialogButton setOpen={setShowFlagsDialog} icon="bi-flag-fill" title="Flags" margin={false} />
-                    </InputGroup>
-                    <InputGroup className="me-md-3 me-2">
-                        <ShowDialogButton setOpen={setShowInputDialog} icon="bi bi-patch-question" title="Inputs" margin={false} />
-                        {
-                            inputs.length > 0 ? (
-                                <span className="form-control font-monospace">{inputs.length}</span>
-                            ) : null
-                        }
                     </InputGroup>
                     <ShowDialogButton setOpen={setShowShareDialog} icon="bi-share" title="Share code" />
                     <ShowDialogButton setOpen={setShowElementOffcanvas} icon="bi-journal-code" title="Elements" />
@@ -72,9 +61,6 @@ export default function Header({ state, onRunClicked, flags, inputs, setShowFlag
                             </Button>
                             <Dropdown.Toggle split id="toggle-mober-menu" variant="outline-secondary" />
                             <Dropdown.Menu>
-                                <Dropdown.Item as="button" onClick={() => setShowInputDialog(true)}>
-                                    Inputs
-                                </Dropdown.Item>
                                 <Dropdown.Item as="button" onClick={() => setShowShareDialog(true)}>
                                     Share code
                                 </Dropdown.Item>

@@ -17,6 +17,7 @@ import { deserializeFlags, Flags, serializeFlags } from "../interpreter/flags";
 import { FlagsDialog } from "./dialogs/FlagsDialog";
 import { Input, InputDialog } from "./dialogs/InputDialog";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
+import { InputList } from "./Inputs";
 
 // Disabled until webpack/webpack#17870 is fixed
 // if ("serviceWorker" in navigator) {
@@ -62,13 +63,12 @@ export function Theseus({ permalink }: TheseusProps) {
     const [header, setHeader] = useState(permalink?.header ?? "");
     const [code, setCode] = useState(permalink?.code ?? "");
     const [footer, setFooter] = useState(permalink?.footer ?? "");
-    const [inputs, setInputs] = useState<Input[]>(permalink?.inputs?.map((input) => ({ id: Math.random(), value: input } as Input)) ?? []);
+    const [inputs, updateInputs] = useImmer<string[]>(permalink?.inputs ?? []);
     const [bytecount, setBytecount] = useState("...");
 
     const [showFlagsDialog, setShowFlagsDialog] = useState(false);
     const [showSettingsDialog, setShowSettingsDialog] = useState(false);
     const [showShareDialog, setShowShareDialog] = useState(false);
-    const [showInputDialog, setShowInputDialog] = useState(false);
     const [showElementOffcanvas, setShowElementOffcanvas] = useState(false);
 
     const [state, setState] = useState<VyRunnerState>((header + code + footer).length > 0 ? "starting" : "idle");
@@ -110,7 +110,7 @@ export function Theseus({ permalink }: TheseusProps) {
 
     useEffect(() => {
         encodeHash(
-            header, code, footer, [...serializeFlags(elementData.flagDefs, flags)], inputs.map((input) => input.value), elementData.version,
+            header, code, footer, [...serializeFlags(elementData.flagDefs, flags)], inputs, elementData.version,
         ).then((hash) => history.replaceState(undefined, "", "#" + hash));
     }, [header, code, footer, flags, inputs]);
 
@@ -144,7 +144,6 @@ export function Theseus({ permalink }: TheseusProps) {
         />
         <FlagsDialog flags={flags} setFlags={setFlags} show={showFlagsDialog} setShow={setShowFlagsDialog} />
         <ShareDialog bytecount={bytecount} code={code} flags={[...serializeFlags(elementData.flagDefs, flags)].join("")} show={showShareDialog} setShow={setShowShareDialog} />
-        <InputDialog inputs={inputs} setInputs={setInputs} show={showInputDialog} setShow={setShowInputDialog} />
         <ElementOffcanvas
             show={showElementOffcanvas} setShow={setShowElementOffcanvas} insertCharacter={(char) => {
                 const view = lastFocusedEditor?.view;
@@ -166,36 +165,60 @@ export function Theseus({ permalink }: TheseusProps) {
                             break;
                     }
                 }
-            }} inputs={inputs} setShowFlagsDialog={setShowFlagsDialog} setShowSettingsDialog={setShowSettingsDialog} setShowShareDialog={setShowShareDialog} setShowInputDialog={setShowInputDialog} setShowElementOffcanvas={setShowElementOffcanvas}
+            }} setShowFlagsDialog={setShowFlagsDialog} setShowSettingsDialog={setShowSettingsDialog} setShowShareDialog={setShowShareDialog} setShowElementOffcanvas={setShowElementOffcanvas}
         />
         <main className="w-100 h-100 main">
-            <div>
+            <div className="vstack">
                 <Suspense
                     fallback={
-                        <div className="d-flex justify-content-center py-4 m-2">
+                        <div className="d-flex justify-content-center py-4 m-2 flex-grow-1">
                             <Spinner animation="border" className="" role="status">
                                 <span className="visually-hidden">Loading...</span>
                             </Spinner>
                         </div>
                     }
                 >
-                    <Editor utilWorker={utilWorker} ratio="20%" code={header} setCode={setHeader} settings={settings} literate={literate} claimFocus={setLastFocusedEditor}>
-                        Header
-                    </Editor>
-                    <Editor utilWorker={utilWorker} ratio="60%" code={code} setCode={setCode} settings={settings} literate={literate} claimFocus={setLastFocusedEditor} autoFocus>
-                        <div className="d-flex align-items-center">
-                            {bytecount}
-                            {literate ? (
-                                <Button variant="link" size="sm" className="ms-auto p-0" onClick={literateToSbcs}>
-                                    literate to sbcs
-                                </Button>
-                            ) : null}
-                        </div>
-                    </Editor>
-                    <Editor utilWorker={utilWorker} ratio="20%" code={footer} setCode={setFooter} settings={settings} literate={literate} claimFocus={setLastFocusedEditor}>
-                        Footer
-                    </Editor>
+                    <Tab.Container defaultActiveKey="code">
+                        <Nav variant="pills" className="align-items-end m-2">
+                            <Nav.Item>
+                                <Nav.Link eventKey="header">Header</Nav.Link>
+                            </Nav.Item>
+                            <Nav.Item>
+                                <Nav.Link eventKey="code">Code</Nav.Link>
+                            </Nav.Item>
+                            <Nav.Item>
+                                <Nav.Link eventKey="footer">Footer</Nav.Link>
+                            </Nav.Item>
+                        </Nav>
+                        <Tab.Content className="container-type-size flex-grow-1">
+                            <Tab.Pane eventKey="header">
+                                <Editor utilWorker={utilWorker} code={header} setCode={setHeader} settings={settings} literate={literate} claimFocus={setLastFocusedEditor}>
+                                    Header
+                                </Editor>
+                            </Tab.Pane>
+                            <Tab.Pane eventKey="code">
+                                <Editor utilWorker={utilWorker} code={code} setCode={setCode} settings={settings} literate={literate} claimFocus={setLastFocusedEditor} autoFocus>
+                                    <div className="d-flex align-items-center">
+                                        {bytecount}
+                                        {literate ? (
+                                            <Button variant="link" size="sm" className="ms-auto p-0" onClick={literateToSbcs}>
+                                                literate to sbcs
+                                            </Button>
+                                        ) : null}
+                                    </div>
+                                </Editor>
+                            </Tab.Pane>
+                            <Tab.Pane eventKey="footer">
+                                <Editor utilWorker={utilWorker} code={footer} setCode={setFooter} settings={settings} literate={literate} claimFocus={setLastFocusedEditor}>
+                                    Footer
+                                </Editor>
+                            </Tab.Pane>
+                        </Tab.Content>
+                    </Tab.Container>
                 </Suspense>
+                <div className="h-50 overflow-y-scroll">
+                    <InputList id="inputs" inputs={inputs} updateInputs={updateInputs} />
+                </div>
             </div>
             <div className="vstack">
                 <Tab.Container
@@ -227,7 +250,7 @@ export function Theseus({ permalink }: TheseusProps) {
                                     ref={runnerRef}
                                     code={header + code + footer}
                                     flags={[...serializeFlags(elementData.flagDefs, flags)]}
-                                    inputs={inputs.map((i) => i.value)}
+                                    inputs={inputs}
                                     timeout={timeout != null ? timeout * 1000 : null}
                                     onStart={() => setState("running")}
                                     onFinish={() => setState("idle")}

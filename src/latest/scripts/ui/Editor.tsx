@@ -17,7 +17,6 @@ import { elementTooltip, vyxal, vyxalLiterate } from "../language/common";
 import { compressButtonPlugin } from "../language/sbcs/compression";
 import { vyxalHover } from "../language/sbcs/tooltips";
 import { vyxalLitCompletion } from "../language/literate/autocomplete";
-import { LanguageSupport } from "@codemirror/language";
 
 const commonExtensions = [
     Prec.high(keymap.of([
@@ -39,7 +38,7 @@ const commonExtensions = [
     highlightActiveLine(),
     highlightActiveLineGutter(),
     EditorView.theme({
-        "&": { height: "100%" },
+        "&": { height: "100cqh" },
         "&.cm-focused": { outline: "none" },
         ".cm-scroller": {overflow: "auto"},
         ".cm-tooltip": {"z-index": "400 !important"},
@@ -54,7 +53,6 @@ const THEMES = {
 type EditorProps = {
     utilWorker: UtilWorker,
     code: string,
-    ratio: string,
     setCode: Dispatch<SetStateAction<string>>,
     settings: Settings,
     literate: boolean,
@@ -74,7 +72,7 @@ function EditorError({ error, resetErrorBoundary }: FallbackProps) {
     </Stack>;
 }
 
-export default function Editor({ utilWorker, code, ratio, children, setCode, settings, literate, claimFocus, autoFocus }: EditorProps) {
+export default function Editor({ utilWorker, code, children, setCode, settings, literate, claimFocus, autoFocus }: EditorProps) {
     const elementData = useContext(ElementDataContext)!;
     const editorRef = useRef<ReactCodeMirrorRef | null>(null);
     const onChange = useCallback((code: string) => {
@@ -112,7 +110,6 @@ export default function Editor({ utilWorker, code, ratio, children, setCode, set
                 basicSetup={false}
                 theme={THEMES[settings.theme]}
                 value={code}
-                style={{ height: ratio }}
                 onChange={onChange}
                 extensions={extensions}
                 ref={editorRef}
