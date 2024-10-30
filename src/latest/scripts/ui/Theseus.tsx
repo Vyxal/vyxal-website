@@ -188,8 +188,8 @@ export function Theseus({ permalink }: TheseusProps) {
                 setShowShareDialog={setShowShareDialog}
                 setShowElementOffcanvas={setShowElementOffcanvas}
             />
-            <main className="main">
-                <div className="vstack">
+            <main className="main border-top">
+                <div className="vstack border-end">
                     <Suspense
                         fallback={
                             <div className="d-flex justify-content-center py-4 m-2 flex-grow-1">
@@ -261,7 +261,7 @@ export function Theseus({ permalink }: TheseusProps) {
                         </Tab.Content>
                     </Tab.Container>
                     <DragDropContext onDragEnd={onInputDragEnd}>
-                        <div className="d-flex flex-column overflow-y-scroll h-50 pt-2 position-relative">
+                        <div className="d-flex flex-column overflow-y-scroll h-50 pt-2 position-relative border-top">
                             {inputGroups.length > 0 ? inputGroups.map((inputs, index) => (
                                 <InputGroup
                                     key={index}
