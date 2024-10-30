@@ -126,7 +126,7 @@ export function Theseus({ permalink }: TheseusProps) {
             if (state.name != "idle") {
                 return;
             }
-            runnerRef.current?.start(code, flags, inputGroups, null, timeout);
+            runnerRef.current?.start(header + code + footer, flags, inputGroups, null, timeout);
         };
         window.addEventListener("run-vyxal", listener);
         return () => window.removeEventListener("run-vyxal", listener);
