@@ -108,3 +108,9 @@ nav .input-group {
 textarea {
     resize: none;
 }
+
+.info-text {
+    @extend .text-secondary-emphasis;
+    -webkit-user-select: none; /* Safari */
+    user-select: none;
+}

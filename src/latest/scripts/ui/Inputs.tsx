@@ -83,8 +83,8 @@ function InputGroupElement({ group, inputs: { name, inputs }, dispatchInputs, st
             </Button>
         </div>
         {inputs.length == 0 ? (
-            <div className="m-2 text-center form-text">
-                No inputs. Click <i className="bi bi-plus-circle"></i> to add one.
+            <div className="m-2 text-center fs-6 info-text">
+                <small>No inputs. Click <i className="bi bi-plus-circle"></i> to add one.</small>
             </div>
         ) : <Droppable droppableId={group.toString()} type={`group-${group}`}>
             {(provided) => {
@@ -133,7 +133,7 @@ export function InputList({ inputs, dispatchInputs, state, run }: InputListProps
                     state={state}
                 />
             )) : (
-                <div className="position-absolute top-50 start-50 translate-middle text-secondary-emphasis">
+                <div className="position-absolute top-50 start-50 translate-middle info-text">
                     No input groups. Click <i className="bi bi-plus-circle"></i> to add one.
                 </div>
             )}
