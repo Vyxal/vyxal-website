@@ -72,13 +72,13 @@ function InputGroupElement({ group, inputs: { name, inputs }, dispatchInputs, st
                     style={{ maxWidth: "200px" }}
                 />
             </BsInputGroup>
-            <Button variant="secondary-bg" className="ms-2" onClick={() => dispatchInputs({ type: "delete-group", group })}>
+            <Button variant="secondary-bg" className="ms-auto me-2" onClick={() => dispatchInputs({ type: "delete-group", group })}>
                 <i className="bi bi-trash2"></i>
             </Button>
-            <Button variant="secondary-bg" className="ms-auto" onClick={() => dispatchInputs({ type: "duplicate-group", group })}>
+            <Button variant="secondary-bg" className="me-2" onClick={() => dispatchInputs({ type: "duplicate-group", group })}>
                 <i className="bi bi-copy"></i>
             </Button>
-            <Button variant="primary" className="ms-2" onClick={() => dispatchInputs({ type: "append-input", group })}>
+            <Button variant="primary" onClick={() => dispatchInputs({ type: "append-input", group })}>
                 <i className="bi bi-plus-circle"></i>
             </Button>
         </div>
