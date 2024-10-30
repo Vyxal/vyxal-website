@@ -68,7 +68,7 @@ export async function decodeHash(hash: string): Promise<DecodeResult | null> {
                     permalink: {
                         ...permalink,
                         format: latestPermalink,
-                        inputs: [["Default", permalink.inputs]],
+                        inputs: permalink.inputs.length > 0 ? [["Default", permalink.inputs]] : [],
                     },
                 };
             }
