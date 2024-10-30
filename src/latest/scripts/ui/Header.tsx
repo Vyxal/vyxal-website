@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
 import { Button, ButtonGroup, Container, Dropdown, InputGroup, Nav, Navbar, Spinner } from "react-bootstrap";
-import type { VyRunnerState } from "./Theseus";
+import type { RunState } from "./Theseus";
 import logo from "../../../common/assets/logo-64.png";
 
 type ShowDialogButtonProps = {
@@ -19,7 +19,7 @@ function ShowDialogButton({ setOpen, title, icon, margin = true }: ShowDialogBut
 }
 
 type HeaderProps = {
-    state: VyRunnerState,
+    state: RunState,
     onRunClicked: () => unknown,
     flags: Set<string>,
     setShowFlagsDialog: Dispatch<SetStateAction<boolean>>,
@@ -73,13 +73,13 @@ export default function Header({ state, onRunClicked, flags, setShowFlagsDialog,
                 </div>
                 <Nav className="me-md-auto me-0 justify-self-end">
                     <Button
-                        variant={{ "idle": "primary", "starting": "warning", "running": "danger" }[state]}
+                        variant={{"idle": "primary", "starting": "warning", "running": "danger"}[state.name]}
                         onClick={onRunClicked}
                         className="d-flex align-items-center"
-                        disabled={state == "starting"}
+                        disabled={state.name == "starting"}
                     >
                         {
-                            state != "idle" ? (
+                            state.name != "idle" ? (
                                 <Spinner as="span" animation="border" role="status" className="spinner-border-sm me-2">
                                     <span className="visually-hidden">Running program</span>
                                 </Spinner>
@@ -87,7 +87,7 @@ export default function Header({ state, onRunClicked, flags, setShowFlagsDialog,
                                 <i className="bi bi-play-fill"></i>
                             )
                         }
-                        {{ "idle": "Run", "starting": "Starting", "running": "Stop" }[state]}
+                        {{ "idle": "Run", "starting": "Starting", "running": "Stop" }[state.name]}
                     </Button>
                 </Nav>
                 <Nav className="ms-auto justify-self-end">

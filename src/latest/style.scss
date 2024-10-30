@@ -3,15 +3,17 @@
 .main {
     display: flex;
     flex-direction: row;
+    container-type: size;
+    flex: 1;
     @include media-breakpoint-down(md) {
         flex-direction: column;
         > div {
-            height: 50%;
+            height: 50cqh;
         }
     }
     @include media-breakpoint-up(md) {
         > div {
-            width: 50%;
+            width: 50cqh;
         }
     }
 }
@@ -101,4 +103,8 @@ nav .input-group {
 
 .height-50cqh {
     height: 50cqh;
+}
+
+textarea {
+    resize: none;
 }

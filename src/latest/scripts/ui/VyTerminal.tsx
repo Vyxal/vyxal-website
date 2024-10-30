@@ -1,33 +1,35 @@
-import { ForwardedRef, forwardRef, useContext, useEffect, useImperativeHandle, useMemo, useRef } from "react";
-import { VyRunner, TerminateReason } from "../interpreter/runner";
+import { ForwardedRef, forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useMemo, useRef } from "react";
+import { VyRunner, TerminateReason, VyRunnerEvents } from "../interpreter/runner";
 import { ElementDataContext } from "../interpreter/element-data";
 import splashes from "../../data/splash.txt?raw";
+import type { Inputs } from "../interpreter/inputs";
+import { Flags, serializeFlags } from "../interpreter/flags";
 
 export interface VyTerminalRef {
-    start(): void,
+    start(code: string, flags: Flags, inputs: Inputs, group: number | null, timeout: number | null): void,
     stop(): void,
     getOutput(): string,
     showMessage(message: string): void,
 }
 
 type VyTerminalProps = {
-    code: string,
-    flags: string[],
-    inputs: string[],
-    timeout: number | null,
-    onStart: () => unknown,
-    onFinish: () => unknown,
+    onRunningGroupChanged: (group: number | null) => unknown,
 };
 
-const VyTerminal = forwardRef(function VyTerminal({ code, flags, inputs, timeout, onStart, onFinish }: VyTerminalProps, ref: ForwardedRef<VyTerminalRef>) {
+const VyTerminal = forwardRef(function VyTerminal({ onRunningGroupChanged }: VyTerminalProps, ref: ForwardedRef<VyTerminalRef>) {
     const wrapperRef = useRef(null);
-    const elementData = useContext(ElementDataContext);
+    const elementData = useContext(ElementDataContext)!;
     const runner = useMemo(() => new VyRunner(splashes.trim().split("\n"), elementData!.version), []);
+
+    const runningGroupChangedCallback = useCallback((e: VyRunnerEvents["runningGroupChanged"]) => {
+        console.log(e.detail.group);
+        onRunningGroupChanged(e.detail.group);
+    }, [onRunningGroupChanged]);
 
     useImperativeHandle(ref, () => {
         return {
-            start() {
-                runner.start(code, flags, inputs, timeout);
+            start(code, flags, inputs, group, timeout) {
+                runner.start(code, [...serializeFlags(elementData.flagDefs, flags)], inputs, group, timeout);
             },
             stop() {
                 return runner.terminate(TerminateReason.Terminated);
@@ -43,15 +45,10 @@ const VyTerminal = forwardRef(function VyTerminal({ code, flags, inputs, timeout
 
     useEffect(() => {
         runner.attach(wrapperRef.current!);
-        runner.addEventListener("started", onStart);
-        runner.addEventListener("finished", onFinish);
-        if (code.length > 0) {
-            runner.start(code, flags, inputs, timeout);
-        }
+        runner.addEventListener("runningGroupChanged", runningGroupChangedCallback);
         return () => {
             runner.detach();
-            runner.removeEventListener("started", onStart);
-            runner.removeEventListener("finished", onFinish);
+            runner.removeEventListener("runningGroupChanged", runningGroupChangedCallback);
         };
     }, []);
 

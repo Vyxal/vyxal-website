@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useContext, useEffect, useRef, useState } from "react";
 import Header from "./Header";
 import { Spinner, Tab, Nav, Button } from "react-bootstrap";
-import { useImmer } from "use-immer";
+import { useImmer, useImmerReducer } from "use-immer";
 import { isTheSeason, loadSettings, saveSettings, Settings, Theme } from "./settings";
 import { UtilWorker } from "../workers/util-api";
 import { VyTerminalRef } from "./VyTerminal";
@@ -15,9 +15,10 @@ import { CopyButton } from "./CopyButton";
 import { ElementDataContext } from "../interpreter/element-data";
 import { deserializeFlags, Flags, serializeFlags } from "../interpreter/flags";
 import { FlagsDialog } from "./dialogs/FlagsDialog";
-import { Input, InputDialog } from "./dialogs/InputDialog";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import { InputList } from "./Inputs";
+import { InputGroup } from "./Inputs";
+import { inputsReducer } from "../interpreter/inputs";
+import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 
 // Disabled until webpack/webpack#17870 is fixed
 // if ("serviceWorker" in navigator) {
@@ -38,7 +39,7 @@ const Editor = lazy(() => import(
 // TODO: Don't hardcode this
 const LITERATE_MODE_FLAG_NAME = "Literate mode";
 
-export type VyRunnerState = "idle" | "starting" | "running";
+export type RunState = { name: "idle" | "starting" } | { name: "running", group: number };
 
 type TheseusProps = {
     permalink: Permalink | null,
@@ -63,7 +64,7 @@ export function Theseus({ permalink }: TheseusProps) {
     const [header, setHeader] = useState(permalink?.header ?? "");
     const [code, setCode] = useState(permalink?.code ?? "");
     const [footer, setFooter] = useState(permalink?.footer ?? "");
-    const [inputs, updateInputs] = useImmer<string[]>(permalink?.inputs ?? []);
+    const [inputGroups, dispatchInputs] = useImmerReducer(inputsReducer, permalink?.inputs?.map(([name, inputs]) => ({ name, inputs: inputs.map((input) => ({ id: crypto.randomUUID(), input })) })) ?? []);
     const [bytecount, setBytecount] = useState("...");
 
     const [showFlagsDialog, setShowFlagsDialog] = useState(false);
@@ -71,7 +72,7 @@ export function Theseus({ permalink }: TheseusProps) {
     const [showShareDialog, setShowShareDialog] = useState(false);
     const [showElementOffcanvas, setShowElementOffcanvas] = useState(false);
 
-    const [state, setState] = useState<VyRunnerState>((header + code + footer).length > 0 ? "starting" : "idle");
+    const [state, setState] = useState<RunState>({ name: "idle" });
     const [lastFocusedEditor, setLastFocusedEditor] = useState<ReactCodeMirrorRef | null>(null);
     
     const runnerRef = useRef<VyTerminalRef | null>(null);
@@ -109,21 +110,26 @@ export function Theseus({ permalink }: TheseusProps) {
     }, [settings]);
 
     useEffect(() => {
-        encodeHash(
-            header, code, footer, [...serializeFlags(elementData.flagDefs, flags)], inputs, elementData.version,
-        ).then((hash) => history.replaceState(undefined, "", "#" + hash));
-    }, [header, code, footer, flags, inputs]);
+        encodeHash({
+            header,
+            code,
+            footer,
+            flags: [...serializeFlags(elementData.flagDefs, flags)],
+            inputs: inputGroups.map(({ name, inputs }) => [name, inputs.map(({ input }) => input)]),
+            version: elementData.version,
+        }).then((hash) => history.replaceState(undefined, "", "#" + hash));
+    }, [header, code, footer, flags, inputGroups]);
 
     useEffect(() => {
         const listener = () => {
-            if (state != "idle") {
+            if (state.name != "idle") {
                 return;
             }
-            runnerRef.current?.start();
+            runnerRef.current?.start(code, flags, inputGroups, null, timeout);
         };
         window.addEventListener("run-vyxal", listener);
         return () => window.removeEventListener("run-vyxal", listener);
-    }, [header, code, footer, flags, inputs, timeout, state]);
+    }, [header, code, footer, flags, inputGroups, timeout, state]);
 
     useEffect(() => {
         utilWorker.formatBytecount(code, literate).then(setBytecount);
@@ -132,6 +138,26 @@ export function Theseus({ permalink }: TheseusProps) {
     const literateToSbcs = useCallback(async() => {
         runnerRef.current?.showMessage(`\x1b[1mSBCS translation:\x1b[0m\n${await utilWorker.sbcsify(code)}`);
     }, [code, runnerRef]);
+
+    const onInputDragEnd = (result: DropResult) => {
+        if (result.destination != null) {
+            dispatchInputs({ type: "reorder-input", group: Number.parseInt(result.destination.droppableId), input: result.source.index, moveTo: result.destination.index });
+        }
+    };
+
+    const onRunClicked = useCallback((group: number | null) => {
+        if (runnerRef.current != null) {
+            switch (state.name) {
+                case "idle":
+                    setState({ name: "starting" });
+                    runnerRef.current.start(code, flags, inputGroups, group, timeout);
+                    break;
+                case "running":
+                    runnerRef.current.stop();
+                    break;
+            }
+        }
+    }, [code, flags, inputGroups, timeout, runnerRef, state]);
 
     return <>
         <SettingsDialog
@@ -152,117 +178,134 @@ export function Theseus({ permalink }: TheseusProps) {
                 }
             }} 
         />
-        <Header
-            state={state} flags={serializeFlags(elementData.flagDefs, flags)} onRunClicked={() => {
-                if (runnerRef.current != null) {
-                    switch (state) {
-                        case "idle":
-                            setState("starting");
-                            runnerRef.current.start();
-                            break;
-                        case "running":
-                            runnerRef.current.stop();
-                            break;
-                    }
-                }
-            }} setShowFlagsDialog={setShowFlagsDialog} setShowSettingsDialog={setShowSettingsDialog} setShowShareDialog={setShowShareDialog} setShowElementOffcanvas={setShowElementOffcanvas}
-        />
-        <main className="w-100 h-100 main">
-            <div className="vstack">
-                <Suspense
-                    fallback={
-                        <div className="d-flex justify-content-center py-4 m-2 flex-grow-1">
-                            <Spinner animation="border" className="" role="status">
-                                <span className="visually-hidden">Loading...</span>
-                            </Spinner>
-                        </div>
-                    }
-                >
-                    <Tab.Container defaultActiveKey="code">
+        <div className="w-100 h-100 vstack">
+            <Header
+                state={state}
+                flags={serializeFlags(elementData.flagDefs, flags)}
+                onRunClicked={() => onRunClicked(null)}
+                setShowFlagsDialog={setShowFlagsDialog}
+                setShowSettingsDialog={setShowSettingsDialog}
+                setShowShareDialog={setShowShareDialog}
+                setShowElementOffcanvas={setShowElementOffcanvas}
+            />
+            <main className="main">
+                <div className="vstack">
+                    <Suspense
+                        fallback={
+                            <div className="d-flex justify-content-center py-4 m-2 flex-grow-1">
+                                <Spinner animation="border" className="" role="status">
+                                    <span className="visually-hidden">Loading...</span>
+                                </Spinner>
+                            </div>
+                        }
+                    >
+                        <Tab.Container defaultActiveKey="code">
+                            <Nav variant="pills" className="align-items-end m-2">
+                                <Nav.Item>
+                                    <Nav.Link eventKey="header">Header</Nav.Link>
+                                </Nav.Item>
+                                <Nav.Item>
+                                    <Nav.Link eventKey="code">Code</Nav.Link>
+                                </Nav.Item>
+                                <Nav.Item>
+                                    <Nav.Link eventKey="footer">Footer</Nav.Link>
+                                </Nav.Item>
+                            </Nav>
+                            <Tab.Content className="container-type-size flex-grow-1">
+                                <Tab.Pane eventKey="header">
+                                    <Editor utilWorker={utilWorker} code={header} setCode={setHeader} settings={settings} literate={literate} claimFocus={setLastFocusedEditor}>
+                                        Header
+                                    </Editor>
+                                </Tab.Pane>
+                                <Tab.Pane eventKey="code">
+                                    <Editor utilWorker={utilWorker} code={code} setCode={setCode} settings={settings} literate={literate} claimFocus={setLastFocusedEditor} autoFocus>
+                                        <div className="d-flex align-items-center">
+                                            {bytecount}
+                                            {literate ? (
+                                                <Button variant="link" size="sm" className="ms-auto p-0" onClick={literateToSbcs}>
+                                                    literate to sbcs
+                                                </Button>
+                                            ) : null}
+                                        </div>
+                                    </Editor>
+                                </Tab.Pane>
+                                <Tab.Pane eventKey="footer">
+                                    <Editor utilWorker={utilWorker} code={footer} setCode={setFooter} settings={settings} literate={literate} claimFocus={setLastFocusedEditor}>
+                                        Footer
+                                    </Editor>
+                                </Tab.Pane>
+                            </Tab.Content>
+                        </Tab.Container>
+                    </Suspense>
+                </div>
+                <div className="vstack">
+                    <Tab.Container
+                        defaultActiveKey="terminal"
+                    >
                         <Nav variant="pills" className="align-items-end m-2">
                             <Nav.Item>
-                                <Nav.Link eventKey="header">Header</Nav.Link>
+                                <Nav.Link eventKey="terminal">Terminal</Nav.Link>
                             </Nav.Item>
                             <Nav.Item>
-                                <Nav.Link eventKey="code">Code</Nav.Link>
+                                <Nav.Link eventKey="html">HTML</Nav.Link>
                             </Nav.Item>
-                            <Nav.Item>
-                                <Nav.Link eventKey="footer">Footer</Nav.Link>
-                            </Nav.Item>
+                            <div className="ms-auto me-1">
+                                <CopyButton title="Copy output" generate={() => runnerRef.current?.getOutput() ?? ""} />
+                            </div>
                         </Nav>
-                        <Tab.Content className="container-type-size flex-grow-1">
-                            <Tab.Pane eventKey="header">
-                                <Editor utilWorker={utilWorker} code={header} setCode={setHeader} settings={settings} literate={literate} claimFocus={setLastFocusedEditor}>
-                                    Header
-                                </Editor>
+                        <Tab.Content className="bg-body-tertiary flex-grow-1">
+                            <Tab.Pane eventKey="terminal" className="h-100 position-relative">
+                                <Suspense
+                                    fallback={
+                                        <div className="d-flex justify-content-center pt-2 h-100 terminal-placeholder">
+                                            <Spinner animation="border" className="" role="status" variant="light">
+                                                <span className="visually-hidden">Loading...</span>
+                                            </Spinner>
+                                        </div>
+                                    }
+                                >
+                                    <VyTerminal
+                                        ref={runnerRef}
+                                        onRunningGroupChanged={(group) => {
+                                            if (group != null) {
+                                                setState({ name: "running", group });
+                                            } else {
+                                                setState({ name: "idle" });
+                                            }
+                                        }}
+                                    />
+                                </Suspense>
                             </Tab.Pane>
-                            <Tab.Pane eventKey="code">
-                                <Editor utilWorker={utilWorker} code={code} setCode={setCode} settings={settings} literate={literate} claimFocus={setLastFocusedEditor} autoFocus>
-                                    <div className="d-flex align-items-center">
-                                        {bytecount}
-                                        {literate ? (
-                                            <Button variant="link" size="sm" className="ms-auto p-0" onClick={literateToSbcs}>
-                                                literate to sbcs
-                                            </Button>
-                                        ) : null}
-                                    </div>
-                                </Editor>
-                            </Tab.Pane>
-                            <Tab.Pane eventKey="footer">
-                                <Editor utilWorker={utilWorker} code={footer} setCode={setFooter} settings={settings} literate={literate} claimFocus={setLastFocusedEditor}>
-                                    Footer
-                                </Editor>
+                            <Tab.Pane eventKey="html">
+                                <HtmlView getOutput={runnerRef.current?.getOutput} />
                             </Tab.Pane>
                         </Tab.Content>
                     </Tab.Container>
-                </Suspense>
-                <div className="h-50 overflow-y-scroll">
-                    <InputList id="inputs" inputs={inputs} updateInputs={updateInputs} />
-                </div>
-            </div>
-            <div className="vstack">
-                <Tab.Container
-                    defaultActiveKey="terminal"
-                >
-                    <Nav variant="pills" className="align-items-end m-2">
-                        <Nav.Item>
-                            <Nav.Link eventKey="terminal">Terminal</Nav.Link>
-                        </Nav.Item>
-                        <Nav.Item>
-                            <Nav.Link eventKey="html">HTML</Nav.Link>
-                        </Nav.Item>
-                        <div className="ms-auto me-1">
-                            <CopyButton title="Copy output" generate={() => runnerRef.current?.getOutput() ?? ""} />
-                        </div>
-                    </Nav>
-                    <Tab.Content className="flex-grow-1 bg-body-tertiary">
-                        <Tab.Pane eventKey="terminal" className="h-100 position-relative">
-                            <Suspense
-                                fallback={
-                                    <div className="d-flex justify-content-center pt-2 h-100 terminal-placeholder">
-                                        <Spinner animation="border" className="" role="status" variant="light">
-                                            <span className="visually-hidden">Loading...</span>
-                                        </Spinner>
-                                    </div>
-                                }
-                            >
-                                <VyTerminal
-                                    ref={runnerRef}
-                                    code={header + code + footer}
-                                    flags={[...serializeFlags(elementData.flagDefs, flags)]}
+                    <DragDropContext onDragEnd={onInputDragEnd}>
+                        <div className="d-flex flex-column overflow-y-scroll h-50 pt-2 position-relative">
+                            {inputGroups.length > 0 ? inputGroups.map((inputs, index) => (
+                                <InputGroup
+                                    key={index}
+                                    group={index}
                                     inputs={inputs}
-                                    timeout={timeout != null ? timeout * 1000 : null}
-                                    onStart={() => setState("running")}
-                                    onFinish={() => setState("idle")}
+                                    dispatchInputs={dispatchInputs}
+                                    run={() => onRunClicked(index)}
+                                    state={state}
                                 />
-                            </Suspense>
-                        </Tab.Pane>
-                        <Tab.Pane eventKey="html">
-                            <HtmlView getOutput={runnerRef.current?.getOutput} />
-                        </Tab.Pane>
-                    </Tab.Content>
-                </Tab.Container>
-            </div>
-        </main>
+                            )) : (
+                                <div className="position-absolute top-50 start-50 translate-middle text-secondary-emphasis">
+                                    No input groups. Click <i className="bi bi-plus-circle"></i> to add one.
+                                </div>
+                            )}
+                            <div className="sticky-bottom align-self-end mt-auto">
+                                <Button variant="primary" size="lg" className="m-3 shadow" onClick={() => dispatchInputs({ type: "add-group" })}>
+                                    <i className="bi bi-plus-circle"></i>
+                                </Button>
+                            </div>
+                        </div>
+                    </DragDropContext>
+                </div>
+            </main>
+        </div>
     </>;
 }

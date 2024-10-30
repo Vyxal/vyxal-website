@@ -1,6 +1,8 @@
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { RunRequest, RunnerMessage } from "../workers/runner-types";
+import { Inputs } from "./inputs";
+import { TypedEventTarget } from "typescript-event-target";
 
 const MAX_BUFFER_SIZE = 20000;
 
@@ -8,9 +10,11 @@ export enum TerminateReason {
     Terminated, TimedOut,
 }
 
-export class VyRunner extends EventTarget {
-    started = new Event("started");
-    finished = new Event("finished");
+export type VyRunnerEvents = {
+    runningGroupChanged: CustomEvent<{ group: number | null }>,
+};
+
+export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
     private terminal: Terminal | null;
     private fit: FitAddon | null;
     private worker: Promise<Worker>;
@@ -20,6 +24,11 @@ export class VyRunner extends EventTarget {
     private splashes: string[];
     private version: string;
     private timeoutHandle: number | null;
+    private inputs: Inputs;
+    private code: string;
+    private flags: string[];
+    private currentGroup: number = 0;
+    private runAllGroups: boolean = true;
 
     constructor(splashes: string[], version: string) {
         super();
@@ -87,6 +96,12 @@ export class VyRunner extends EventTarget {
         });
     }
 
+    private runningGroupChanged(group: number | null) {
+        this.dispatchTypedEvent("runningGroupChanged", new CustomEvent(
+            "runningGroupChanged", { detail: { group } },
+        ));
+    }
+
     private onWorkerMessage(message: MessageEvent<RunnerMessage>) {
         const data = message.data;
         if (data.workerNumber != this.workerCounter) {
@@ -95,56 +110,79 @@ export class VyRunner extends EventTarget {
         }
         if (this.terminal != null) {
             switch (data.type) {
-                case "started":
+                case "started":{
                     this._state = "running";
-                    this.terminal.clear();
-                    this.dispatchEvent(this.started);
+                    this.runningGroupChanged(this.currentGroup);
                     break;
-                case "stdout":
+                }
+                case "stdout":{
                     this.terminal.write(data.text);
                     this.outputBuffer.push(data.text);
                     this.outputBuffer.length = Math.min(this.outputBuffer.length, MAX_BUFFER_SIZE);
                     break;
-                case "stderr":
+                }
+                case "stderr":{
                     this.terminal.write(`\x1b[31m${data.text}\x1b[0m`);
                     break;
-                case "worker-notice":
+                }
+                case "worker-notice":{
                     this.terminal.writeln(`\x1b[2m${data.text}\x1b[0m`);
                     break;
-                case "done":
-                    this.terminal.writeln("\n\x1b[0G-------");
-                    this.terminal.writeln("\x1b[1;92mExecution completed\x1b[0m");
-                    this.dispatchEvent(this.finished);
-                    this._state = "idle";
+                }
+                case "done":{
+                    this.terminal?.writeln("\n\x1b[0G-------");
+                    if (this.runAllGroups && this.inputs.length > 0 && ++this.currentGroup != this.inputs.length && this._state == "running") {
+                        this.runNextGroup(this.code, this.flags);
+                    } else {
+                        this.terminal?.writeln("\x1b[1;92mExecution completed\x1b[0m");
+                        this._state = "idle";
+                        this.runningGroupChanged(null);
+                        if (this.timeoutHandle != null) {
+                            window.clearTimeout(this.timeoutHandle);
+                        }
+                    }
+                    break;
+                }
             }
         }
     }
 
-    start(code: string, flags: string[], inputs: string[], timeout: number | null) {
+    private runNextGroup(code: string, flags: string[]) {
+        const group = this.inputs[this.currentGroup];
+        const inputs = group?.inputs ?? [];
+        if (group != undefined) {
+            this.terminal?.writeln(`\x1b[92mRunning group: ${group.name}\x1b[0m`);
+        }
+        this.worker.then((worker) => {
+            worker.postMessage({ code, flags, inputs: inputs.map(({ input }) => input), workerNumber: this.workerCounter } as RunRequest);
+        });
+    }
+
+    async start(code: string, flags: string[], inputs: Inputs, group: number | null, timeout: number | null) {
         if (code == "lyxal") {
             window.location.assign("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
             return;
         }
-        return this.worker.then((worker) => {
-            if (this._state == "running") {
-                throw new Error("Attempted to start while running");
-            }
-            this.terminal?.clear();
-            this.terminal?.reset();
-            this.outputBuffer.length = 0;
-            worker.postMessage({
-                code: code,
-                flags: flags,
-                inputs: inputs,
-                workerNumber: this.workerCounter,
-            } as RunRequest);
-            if (timeout != null) {
-                this.timeoutHandle = window.setTimeout(() => {
-                    this.terminate(TerminateReason.TimedOut);
-                }, timeout);
-                this.addEventListener("finished", () => window.clearTimeout(this.timeoutHandle!), { once: true });
-            }
-        });
+        if (this._state != "idle") {
+            throw new Error("Attempted to start while not idle");
+        }
+        await this.worker;
+        this.terminal?.clear();
+        this.terminal?.reset();
+        this.outputBuffer.length = 0;
+        this.inputs = [...inputs];
+        this.currentGroup = group != null ? group : 0;
+        this.runAllGroups = group == null;
+        this.code = code;
+        this.flags = flags;
+        if (timeout != null) {
+            this.timeoutHandle = window.setTimeout(() => {
+                this.terminate(TerminateReason.TimedOut);
+            }, timeout * 1000);
+        } else {
+            this.timeoutHandle = null;
+        }
+        this.runNextGroup(code, flags);
     }
 
     terminate(reason: TerminateReason = TerminateReason.Terminated) {
@@ -165,7 +203,10 @@ export class VyRunner extends EventTarget {
                     this.terminal?.writeln("\x1b[1;31mExecution timed out\x1b[0m");
                     break;
             }
-            this.dispatchEvent(this.finished);
+            this.runningGroupChanged(null);
+            if (this.timeoutHandle != null) {
+                window.clearTimeout(this.timeoutHandle);
+            }
         });
     }
 

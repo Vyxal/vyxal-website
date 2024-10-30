@@ -1,60 +1,106 @@
-import { Updater } from "use-immer";
-import { DragDropContext, Draggable, Droppable, DropResult } from "@hello-pangea/dnd";
-import { useCallback } from "react";
-import { InputGroup, Form, Button } from "react-bootstrap";
+import { Draggable, Droppable } from "@hello-pangea/dnd";
+import { Dispatch } from "react";
+import { InputGroup as BsInputGroup, Button, FormControl, Spinner } from "react-bootstrap";
+import { Input, InputGroup, InputsReducerAction } from "../interpreter/inputs";
+import TextareaAutosize from 'react-textarea-autosize';
+import type { RunState } from "./Theseus";
 
-type InputListProps = {
-    id: string,
-    inputs: string[],
-    updateInputs: Updater<string[]>,
+type InputProps = {
+    group: number,
+    input: Input,
+    index: number,
+    onInputChange(input: string): unknown,
+    onInputDelete(): unknown,
 };
 
-export function InputList({ id, inputs, updateInputs }: InputListProps) {
-    const onDragEnd = useCallback((result: DropResult) => {
-        updateInputs((inputs) => {
-            if (result.destination == null) {
-                return;
-            }
-            inputs.splice(result.destination.index, 0, inputs.splice(result.source.index, 1)[0]);
-        });
-    }, []);
+function InputElement({ group, input, index, onInputChange, onInputDelete }: InputProps) {
+    return <Draggable draggableId={`group-${group}/${input.id}`}  index={index}>
+        {(provided) => {
+            return <BsInputGroup className="mb-2 px-2" ref={provided.innerRef} {...provided.draggableProps}>
+                <BsInputGroup.Text {...provided.dragHandleProps}><i className="bi bi-grip-vertical"></i></BsInputGroup.Text>
+                <TextareaAutosize
+                    className="form-control"
+                    placeholder="Input"
+                    value={input.input}
+                    onChange={(e) => onInputChange(e.currentTarget.value)}
+                />
+                <Button
+                    variant="outline-danger"
+                    title="Delete input"
+                    className="bg-body"
+                    onClick={onInputDelete}
+                >
+                    <i className="bi bi-trash2"></i>
+                </Button>
+            </BsInputGroup>;
+        }}
+    </Draggable>;
+}
 
-    return <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable droppableId={id}>
+type InputGroupProps = {
+    group: number,
+    inputs: InputGroup,
+    dispatchInputs: Dispatch<InputsReducerAction>,
+    state: RunState,
+    run(): unknown,
+};
+
+export function InputGroup({ group, inputs: { name, inputs }, dispatchInputs, state, run }: InputGroupProps) {
+    return <div className="d-flex flex-column border rounded mb-2 mx-2">
+        <div className="hstack bg-body-secondary p-2 border-bottom rounded-top">
+            <BsInputGroup>
+                <Button
+                    variant={state.name == "running" && state.group == group ? "danger" : "success"}
+                    onClick={() => run()}
+                    disabled={(state.name == "running" && state.group != group) || state.name == "starting"}
+                >
+                    {
+                        (state.name == "running" && state.group == group) ? (
+                            <Spinner as="span" animation="border" role="status" className="spinner-border-sm">
+                                <span className="visually-hidden">Running program</span>
+                            </Spinner>
+                        ) : (
+                            <i className="bi bi-play-fill"></i>
+                        )
+                    }
+                </Button>
+                <FormControl
+                    type="text"
+                    value={name}
+                    onInput={(e) => dispatchInputs({ type: "rename-group", group, name: e.currentTarget.value })}
+                    style={{ maxWidth: "200px" }}
+                />
+            </BsInputGroup>
+            <Button variant="secondary-bg" className="ms-2" onClick={() => dispatchInputs({ type: "delete-group", group })}>
+                <i className="bi bi-trash2"></i>
+            </Button>
+            <Button variant="secondary-bg" className="ms-auto" onClick={() => dispatchInputs({ type: "duplicate-group", group })}>
+                <i className="bi bi-copy"></i>
+            </Button>
+            <Button variant="primary" className="ms-2" onClick={() => dispatchInputs({ type: "append-input", group })}>
+                <i className="bi bi-plus-circle"></i>
+            </Button>
+        </div>
+        {inputs.length == 0 ? (
+            <div className="m-2 text-center form-text">
+                No inputs. Click <i className="bi bi-plus-circle"></i> to add one.
+            </div>
+        ) : <Droppable droppableId={group.toString()} type={`group-${group}`}>
             {(provided) => {
-                return <div ref={provided.innerRef} {...provided.droppableProps} className={`d-flex flex-column input-list`}>
-                    {inputs.map((input, index) => {
-                        return <Draggable key={index} draggableId={`${id}-${index}`} index={index}>
-                            {(provided) => {
-                                return <InputGroup className="mb-2 p-1" ref={provided.innerRef} {...provided.draggableProps}>
-                                    <InputGroup.Text  {...provided.dragHandleProps}><i className="bi bi-grip-vertical"></i></InputGroup.Text>
-                                    <Form.Control
-                                        as="textarea"
-                                        placeholder="Input"
-                                        value={input}
-                                        onChange={(e) => updateInputs((inputs) => {
-                                            inputs[index] = e.target.value;
-                                        })}
-                                    />
-                                    <Button
-                                        variant="outline-danger"
-                                        title="Delete input"
-                                        onClick={() => updateInputs((inputs) => {
-                                            inputs.splice(index, 1);
-                                        })}
-                                    >
-                                        <i className="bi bi-trash2"></i>
-                                    </Button>
-                                </InputGroup>;
-                            }}
-                        </Draggable>;
-                    })}
+                return <div ref={provided.innerRef} className="vstack mt-2" {...provided.droppableProps}>
+                    {inputs.map((input, index) => (
+                        <InputElement
+                            key={input.id}
+                            group={group}
+                            input={input}
+                            index={index}
+                            onInputChange={(input) => dispatchInputs({ type: "set-input", group, input: index, content: input })}
+                            onInputDelete={() => dispatchInputs({ type: "delete-input", group, input: index })}
+                        />
+                    ))}
                     {provided.placeholder}
-                    <Button variant="outline-primary" onClick={() => updateInputs([...inputs, ""])} className="m-1">
-                        <i className="bi bi-plus-circle"></i> Add input
-                    </Button>
                 </div>;
             }}
-        </Droppable>
-    </DragDropContext>;
+        </Droppable>}
+    </div>;
 }

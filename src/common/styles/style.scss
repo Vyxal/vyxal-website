@@ -7,16 +7,16 @@
 @import "~bootstrap/scss/utilities";
 
 $custom-colors: (
-  "ourple": #712cf9
+    "ourple": #712cf9
 );
 $theme-colors: map-merge($theme-colors, $custom-colors);
 $utilities: map-merge(
   $utilities,
   (
     "container-type": (
-      property: container-type,
-      class: container-type,
-      values: size inline-size normal,
+        property: container-type,
+        class: container-type,
+        values: size inline-size normal,
     )
   )
 );
@@ -69,5 +69,14 @@ $utilities: map-merge(
     .discord-online {
         position: absolute;
         transform: translateY(-50%);
+    }
+}
+
+.btn-secondary-bg {
+    @include button-variant($body-secondary-bg, $body-secondary-bg);
+}
+@include color-mode(dark) {
+    .btn-secondary-bg {
+        @include button-variant($body-secondary-bg-dark, $body-secondary-bg-dark);
     }
 }
