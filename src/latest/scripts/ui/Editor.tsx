@@ -38,7 +38,7 @@ const commonExtensions = [
     highlightActiveLine(),
     highlightActiveLineGutter(),
     EditorView.theme({
-        "&": { height: "100cqh" },
+        "&": { height: "100%" },
         "&.cm-focused": { outline: "none" },
         ".cm-scroller": {overflow: "auto"},
         ".cm-tooltip": {"z-index": "400 !important"},
@@ -58,6 +58,7 @@ type EditorProps = {
     literate: boolean,
     claimFocus: (state: ReactCodeMirrorRef) => unknown,
     autoFocus?: boolean,
+    height: string,
     children: ReactNode,
 };
 
@@ -72,7 +73,7 @@ function EditorError({ error, resetErrorBoundary }: FallbackProps) {
     </Stack>;
 }
 
-export default function Editor({ utilWorker, code, children, setCode, settings, literate, claimFocus, autoFocus }: EditorProps) {
+export default function Editor({ utilWorker, code, children, setCode, settings, literate, claimFocus, autoFocus, height }: EditorProps) {
     const elementData = useContext(ElementDataContext)!;
     const editorRef = useRef<ReactCodeMirrorRef | null>(null);
     const onChange = useCallback((code: string) => {
@@ -114,6 +115,7 @@ export default function Editor({ utilWorker, code, children, setCode, settings, 
                 extensions={extensions}
                 ref={editorRef}
                 autoFocus={autoFocus}
+                style={{ height }}
             />
             {headerDom !== null && createPortal(children, headerDom)}
         </ErrorBoundary>

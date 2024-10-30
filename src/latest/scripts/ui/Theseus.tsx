@@ -199,43 +199,22 @@ export function Theseus({ permalink }: TheseusProps) {
                             </div>
                         }
                     >
-                        <Tab.Container defaultActiveKey="code">
-                            <Nav variant="pills" className="align-items-end m-2">
-                                <Nav.Item>
-                                    <Nav.Link eventKey="header">Header</Nav.Link>
-                                </Nav.Item>
-                                <Nav.Item>
-                                    <Nav.Link eventKey="code">Code</Nav.Link>
-                                </Nav.Item>
-                                <Nav.Item>
-                                    <Nav.Link eventKey="footer">Footer</Nav.Link>
-                                </Nav.Item>
-                            </Nav>
-                            <Tab.Content className="container-type-size flex-grow-1">
-                                <Tab.Pane eventKey="header">
-                                    <Editor utilWorker={utilWorker} code={header} setCode={setHeader} settings={settings} literate={literate} claimFocus={setLastFocusedEditor}>
-                                        Header
-                                    </Editor>
-                                </Tab.Pane>
-                                <Tab.Pane eventKey="code">
-                                    <Editor utilWorker={utilWorker} code={code} setCode={setCode} settings={settings} literate={literate} claimFocus={setLastFocusedEditor} autoFocus>
-                                        <div className="d-flex align-items-center">
-                                            {bytecount}
-                                            {literate ? (
-                                                <Button variant="link" size="sm" className="ms-auto p-0" onClick={literateToSbcs}>
-                                                    literate to sbcs
-                                                </Button>
-                                            ) : null}
-                                        </div>
-                                    </Editor>
-                                </Tab.Pane>
-                                <Tab.Pane eventKey="footer">
-                                    <Editor utilWorker={utilWorker} code={footer} setCode={setFooter} settings={settings} literate={literate} claimFocus={setLastFocusedEditor}>
-                                        Footer
-                                    </Editor>
-                                </Tab.Pane>
-                            </Tab.Content>
-                        </Tab.Container>
+                        <Editor utilWorker={utilWorker} code={header} setCode={setHeader} settings={settings} literate={literate} claimFocus={setLastFocusedEditor} height="20cqh">
+                            Header
+                        </Editor>
+                        <Editor utilWorker={utilWorker} code={code} setCode={setCode} settings={settings} literate={literate} claimFocus={setLastFocusedEditor} autoFocus height="60cqh">
+                            <div className="d-flex align-items-center">
+                                {bytecount}
+                                {literate ? (
+                                    <Button variant="link" size="sm" className="ms-auto p-0" onClick={literateToSbcs}>
+                                        literate to sbcs
+                                    </Button>
+                                ) : null}
+                            </div>
+                        </Editor>
+                        <Editor utilWorker={utilWorker} code={footer} setCode={setFooter} settings={settings} literate={literate} claimFocus={setLastFocusedEditor} height="20cqh">
+                            Footer
+                        </Editor>
                     </Suspense>
                 </div>
                 <div className="vstack">
