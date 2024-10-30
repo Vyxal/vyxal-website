@@ -169,8 +169,8 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
             window.location.assign("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
             return;
         }
-        if (this._state != "idle") {
-            throw new Error("Attempted to start while not idle");
+        if (this._state == "running") {
+            throw new Error("Attempted to start while running");
         }
         await this.worker;
         this.terminal?.clear();
@@ -193,12 +193,12 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
         });
     }
 
-    terminate(reason: TerminateReason = TerminateReason.Terminated) {
+    async terminate(reason: TerminateReason = TerminateReason.Terminated) {
         if (this._state != "running") {
             throw new Error("Attempted to terminate worker while not running");
         }
         console.log("Terminating worker");
-        this.worker.then((worker) => {
+        await this.worker.then((worker) => {
             this._state = "booting";
             this.worker = this.spawnWorker();
             worker.terminate();
