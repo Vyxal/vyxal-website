@@ -11,6 +11,7 @@ export enum TerminateReason {
 }
 
 export type VyRunnerEvents = {
+    ready: Event,
     runningGroupChanged: CustomEvent<{ group: number | null }>,
 };
 
@@ -88,6 +89,7 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
                     worker.removeEventListener("message", listener);
                     console.log("Worker is ready");
                     this._state = "idle";
+                    this.dispatchTypedEvent("ready", new Event("ready"));
                 }
             };
             // possible race condition? won't appear in practice

@@ -14,9 +14,10 @@ export interface VyTerminalRef {
 
 type VyTerminalProps = {
     onRunningGroupChanged: (group: number | null) => unknown,
+    onReady?: () => unknown,
 };
 
-const VyTerminal = forwardRef(function VyTerminal({ onRunningGroupChanged }: VyTerminalProps, ref: ForwardedRef<VyTerminalRef>) {
+const VyTerminal = forwardRef(function VyTerminal({ onRunningGroupChanged, onReady }: VyTerminalProps, ref: ForwardedRef<VyTerminalRef>) {
     const wrapperRef = useRef(null);
     const elementData = useContext(ElementDataContext)!;
     const runner = useMemo(() => new VyRunner(splashes.trim().split("\n"), elementData!.version), []);
@@ -46,6 +47,7 @@ const VyTerminal = forwardRef(function VyTerminal({ onRunningGroupChanged }: VyT
     useEffect(() => {
         runner.attach(wrapperRef.current!);
         runner.addEventListener("runningGroupChanged", runningGroupChangedCallback);
+        runner.addEventListener("ready", () => onReady?.() as void, { once: true });
         return () => {
             runner.detach();
             runner.removeEventListener("runningGroupChanged", runningGroupChangedCallback);

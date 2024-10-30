@@ -66,13 +66,14 @@ export function Theseus({ permalink }: TheseusProps) {
     const [footer, setFooter] = useState(permalink?.footer ?? "");
     const [inputGroups, dispatchInputs] = useImmerReducer(inputsReducer, permalink?.inputs?.map(([name, inputs]) => ({ name, inputs: inputs.map((input) => ({ id: crypto.randomUUID(), input })) })) ?? []);
     const [bytecount, setBytecount] = useState("...");
+    const autorun = (header + code + footer).length > 0;
 
     const [showFlagsDialog, setShowFlagsDialog] = useState(false);
     const [showSettingsDialog, setShowSettingsDialog] = useState(false);
     const [showShareDialog, setShowShareDialog] = useState(false);
     const [showElementOffcanvas, setShowElementOffcanvas] = useState(false);
 
-    const [state, setState] = useState<RunState>({ name: "idle" });
+    const [state, setState] = useState<RunState>({ name: autorun ? "starting" : "idle" });
     const [lastFocusedEditor, setLastFocusedEditor] = useState<ReactCodeMirrorRef | null>(null);
     
     const runnerRef = useRef<VyTerminalRef | null>(null);
@@ -148,6 +149,7 @@ export function Theseus({ permalink }: TheseusProps) {
     const onRunClicked = useCallback((group: number | null) => {
         if (runnerRef.current != null) {
             switch (state.name) {
+                case "starting":
                 case "idle":
                     setState({ name: "starting" });
                     runnerRef.current.start(code, flags, inputGroups, group, timeout);
@@ -250,6 +252,11 @@ export function Theseus({ permalink }: TheseusProps) {
                                                 setState({ name: "running", group });
                                             } else {
                                                 setState({ name: "idle" });
+                                            }
+                                        }}
+                                        onReady={() => {
+                                            if (autorun) {
+                                                onRunClicked(null);
                                             }
                                         }}
                                     />
