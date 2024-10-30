@@ -29,7 +29,7 @@ export type InputsReducerAction = {
 export function inputsReducer(draft: Inputs, action: InputsReducerAction) {
     switch (action.type) {
         case "add-group": {
-            draft.push({ name: `Group ${draft.length + 1}`, inputs: [] });
+            draft.push({ name: `Group ${draft.length + 1}`, inputs: [{ id: crypto.randomUUID(), input: "" }] });
             break;
         }
         case "duplicate-group": {
