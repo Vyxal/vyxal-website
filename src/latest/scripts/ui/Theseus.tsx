@@ -16,9 +16,8 @@ import { ElementDataContext } from "../interpreter/element-data";
 import { deserializeFlags, Flags, serializeFlags } from "../interpreter/flags";
 import { FlagsDialog } from "./dialogs/FlagsDialog";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import { InputGroup } from "./Inputs";
 import { inputsReducer } from "../interpreter/inputs";
-import { DragDropContext, DropResult } from "@hello-pangea/dnd";
+import { InputList } from "./Inputs";
 
 // Disabled until webpack/webpack#17870 is fixed
 // if ("serviceWorker" in navigator) {
@@ -64,7 +63,7 @@ export function Theseus({ permalink }: TheseusProps) {
     const [header, setHeader] = useState(permalink?.header ?? "");
     const [code, setCode] = useState(permalink?.code ?? "");
     const [footer, setFooter] = useState(permalink?.footer ?? "");
-    const [inputGroups, dispatchInputs] = useImmerReducer(inputsReducer, permalink?.inputs?.map(([name, inputs]) => ({ name, inputs: inputs.map((input) => ({ id: crypto.randomUUID(), input })) })) ?? []);
+    const [inputs, dispatchInputs] = useImmerReducer(inputsReducer, permalink?.inputs?.map(([name, inputs]) => ({ name, inputs: inputs.map((input) => ({ id: crypto.randomUUID(), input })) })) ?? []);
     const [bytecount, setBytecount] = useState("...");
     const autorun = (header + code + footer).length > 0;
 
@@ -116,21 +115,21 @@ export function Theseus({ permalink }: TheseusProps) {
             code,
             footer,
             flags: [...serializeFlags(elementData.flagDefs, flags)],
-            inputs: inputGroups.map(({ name, inputs }) => [name, inputs.map(({ input }) => input)]),
+            inputs: inputs.map(({ name, inputs }) => [name, inputs.map(({ input }) => input)]),
             version: elementData.version,
         }).then((hash) => history.replaceState(undefined, "", "#" + hash));
-    }, [header, code, footer, flags, inputGroups]);
+    }, [header, code, footer, flags, inputs]);
 
     useEffect(() => {
         const listener = () => {
             if (state.name != "idle") {
                 return;
             }
-            runnerRef.current?.start(header + code + footer, flags, inputGroups, null, timeout);
+            runnerRef.current?.start(header + code + footer, flags, inputs, null, timeout);
         };
         window.addEventListener("run-vyxal", listener);
         return () => window.removeEventListener("run-vyxal", listener);
-    }, [header, code, footer, flags, inputGroups, timeout, state]);
+    }, [header, code, footer, flags, inputs, timeout, state]);
 
     useEffect(() => {
         utilWorker.formatBytecount(code, literate).then(setBytecount);
@@ -140,26 +139,20 @@ export function Theseus({ permalink }: TheseusProps) {
         runnerRef.current?.showMessage(`\x1b[1mSBCS translation:\x1b[0m\n${await utilWorker.sbcsify(code)}`);
     }, [code, runnerRef]);
 
-    const onInputDragEnd = (result: DropResult) => {
-        if (result.destination != null) {
-            dispatchInputs({ type: "reorder-input", group: Number.parseInt(result.destination.droppableId), input: result.source.index, moveTo: result.destination.index });
-        }
-    };
-
     const onRunClicked = useCallback((group: number | null) => {
         if (runnerRef.current != null) {
             switch (state.name) {
                 case "starting":
                 case "idle":
                     setState({ name: "starting" });
-                    runnerRef.current.start(code, flags, inputGroups, group, timeout);
+                    runnerRef.current.start(code, flags, inputs, group, timeout);
                     break;
                 case "running":
                     runnerRef.current.stop();
                     break;
             }
         }
-    }, [code, flags, inputGroups, timeout, runnerRef, state]);
+    }, [code, flags, inputs, timeout, runnerRef, state]);
 
     return <>
         <SettingsDialog
@@ -267,29 +260,14 @@ export function Theseus({ permalink }: TheseusProps) {
                             </Tab.Pane>
                         </Tab.Content>
                     </Tab.Container>
-                    <DragDropContext onDragEnd={onInputDragEnd}>
-                        <div className="d-flex flex-column overflow-y-scroll h-50 pt-2 position-relative border-top">
-                            {inputGroups.length > 0 ? inputGroups.map((inputs, index) => (
-                                <InputGroup
-                                    key={index}
-                                    group={index}
-                                    inputs={inputs}
-                                    dispatchInputs={dispatchInputs}
-                                    run={() => onRunClicked(index)}
-                                    state={state}
-                                />
-                            )) : (
-                                <div className="position-absolute top-50 start-50 translate-middle text-secondary-emphasis">
-                                    No input groups. Click <i className="bi bi-plus-circle"></i> to add one.
-                                </div>
-                            )}
-                            <div className="sticky-bottom align-self-end mt-auto">
-                                <Button variant="primary" size="lg" className="m-3 shadow" onClick={() => dispatchInputs({ type: "add-group" })}>
-                                    <i className="bi bi-plus-circle"></i>
-                                </Button>
-                            </div>
-                        </div>
-                    </DragDropContext>
+                    <div className="d-flex flex-column overflow-y-scroll h-50 pt-2 position-relative border-top">
+                        <InputList
+                            inputs={inputs}
+                            dispatchInputs={dispatchInputs}
+                            state={state}
+                            run={onRunClicked}
+                        />
+                    </div>
                 </div>
             </main>
         </div>

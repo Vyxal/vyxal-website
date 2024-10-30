@@ -1,9 +1,10 @@
-import { Draggable, Droppable } from "@hello-pangea/dnd";
-import { Dispatch } from "react";
+import { DragDropContext, Draggable, Droppable, DropResult } from "@hello-pangea/dnd";
+import { Dispatch, useCallback, useRef } from "react";
 import { InputGroup as BsInputGroup, Button, FormControl, Spinner } from "react-bootstrap";
-import { Input, InputGroup, InputsReducerAction } from "../interpreter/inputs";
+import { Input, InputGroup, Inputs, InputsReducerAction } from "../interpreter/inputs";
 import TextareaAutosize from 'react-textarea-autosize';
 import type { RunState } from "./Theseus";
+import { flushSync } from "react-dom";
 
 type InputProps = {
     group: number,
@@ -37,7 +38,7 @@ function InputElement({ group, input, index, onInputChange, onInputDelete }: Inp
     </Draggable>;
 }
 
-type InputGroupProps = {
+type InputGroupElementProps = {
     group: number,
     inputs: InputGroup,
     dispatchInputs: Dispatch<InputsReducerAction>,
@@ -45,7 +46,7 @@ type InputGroupProps = {
     run(): unknown,
 };
 
-export function InputGroup({ group, inputs: { name, inputs }, dispatchInputs, state, run }: InputGroupProps) {
+function InputGroupElement({ group, inputs: { name, inputs }, dispatchInputs, state, run }: InputGroupElementProps) {
     return <div className="d-flex flex-column border rounded mb-2 mx-2">
         <div className="hstack bg-body-secondary p-2 border-bottom rounded-top">
             <BsInputGroup>
@@ -103,4 +104,56 @@ export function InputGroup({ group, inputs: { name, inputs }, dispatchInputs, st
             }}
         </Droppable>}
     </div>;
+}
+
+type InputListProps = {
+    inputs: Inputs,
+    dispatchInputs: Dispatch<InputsReducerAction>,
+    state: RunState,
+    run(group: number): unknown,
+};
+
+export function InputList({ inputs, dispatchInputs, state, run }: InputListProps) {
+    const inputListRef = useRef<HTMLDivElement | null>(null);
+    const onDragEnd = useCallback((result: DropResult) => {
+        if (result.destination != null) {
+            dispatchInputs({ type: "reorder-input", group: Number.parseInt(result.destination.droppableId), input: result.source.index, moveTo: result.destination.index });
+        }
+    }, [dispatchInputs]);
+
+    return <DragDropContext onDragEnd={onDragEnd}>
+        <div ref={inputListRef}>
+            {inputs.length > 0 ? inputs.map((inputs, index) => (
+                <InputGroupElement
+                    key={index}
+                    group={index}
+                    inputs={inputs}
+                    dispatchInputs={dispatchInputs}
+                    run={() => run(index)}
+                    state={state}
+                />
+            )) : (
+                <div className="position-absolute top-50 start-50 translate-middle text-secondary-emphasis">
+                    No input groups. Click <i className="bi bi-plus-circle"></i> to add one.
+                </div>
+            )}
+        </div>
+        <div className="sticky-bottom align-self-end mt-auto">
+            <Button
+                variant="primary"
+                size="lg"
+                className="m-3 shadow"
+                onClick={() => {
+                    flushSync(() => {
+                        dispatchInputs({ type: "add-group" });
+                    });
+                    inputListRef.current!.lastElementChild!.scrollIntoView({
+                        behavior: "smooth",
+                    });
+                }}
+            >
+                <i className="bi bi-plus-circle"></i>
+            </Button>
+        </div>
+    </DragDropContext>;
 }
