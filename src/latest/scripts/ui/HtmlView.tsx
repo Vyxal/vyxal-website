@@ -10,22 +10,19 @@ export default function HtmlView({ getOutput }: HtmlViewProps) {
     const [document, setDocument] = useState("");
 
     if (agreedToWarning) {
-        return <div className="vstack position-relative">
-            {/* I don't know why, but both padding _and_ margin are required here
-                for the button to actually have a margin around it. Gotta love CSS...
-            */}
+        return <div className="vstack position-relative h-100 overflow-y-scroll">
             <div className="position-absolute bottom-0 end-0 p-2">
-                <Button variant="primary" className="m-2" onClick={() => getOutput ? setDocument(getOutput()) : setDocument("")}>
+                <Button variant="primary" size="lg" className="m-3 shadow" onClick={() => getOutput ? setDocument(getOutput()) : setDocument("")}>
                     <i className="bi bi-arrow-clockwise"></i>
                 </Button>
             </div>
-            <iframe srcDoc={document} className="border border-top-0 mb-2 mx-2" />
+            <iframe srcDoc={document} className="h-100" />
         </div>;
     } else {
         return (
-            <div className="vstack p-2 align-items-center">
+            <div className="vstack align-items-center">
                 <i className="bi bi-exclamation-diamond-fill h1 text-warning"></i>
-                <span className="form-text py-2 text-center">
+                <span className="form-text p-2 text-center">
                     {/* probably unnecessary to warn the user, but whatever */}
                     This tool renders the output of a program as HTML.
                     Very large or malicious output may have detrimental effects on your browser or the interpreter.

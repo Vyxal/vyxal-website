@@ -255,7 +255,7 @@ export function Theseus({ permalink }: TheseusProps) {
                                     />
                                 </Suspense>
                             </Tab.Pane>
-                            <Tab.Pane eventKey="html">
+                            <Tab.Pane eventKey="html" className="h-100 vstack">
                                 <HtmlView getOutput={runnerRef.current?.getOutput} />
                             </Tab.Pane>
                         </Tab.Content>
