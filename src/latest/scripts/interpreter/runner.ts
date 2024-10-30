@@ -30,6 +30,8 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
     private flags: string[];
     private currentGroup: number = 0;
     private runAllGroups: boolean = true;
+    private groupStartedAt: number;
+    private executionStartedAt: number;
 
     constructor(splashes: string[], version: string) {
         super();
@@ -132,11 +134,12 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
                     break;
                 }
                 case "done":{
-                    this.terminal?.writeln("\n\x1b[0G-------");
+                    const now = performance.now();
+                    this.terminal?.writeln(`\n\x1b[0G\x1b[0;2mFinished in ${Math.round((now - this.groupStartedAt)) / 1000} seconds\x1b[0m`);
                     if (this.runAllGroups && this.inputs.length > 0 && ++this.currentGroup != this.inputs.length && this._state == "running") {
                         this.runNextGroup(this.code, this.flags);
                     } else {
-                        this.terminal?.writeln("\x1b[1;92mExecution completed\x1b[0m");
+                        this.terminal?.writeln(`\x1b[1;92mExecution completed\x1b[0m in ${Math.round((now - this.executionStartedAt)) / 1000} seconds`);
                         this._state = "idle";
                         this.runningGroupChanged(null);
                         if (this.timeoutHandle != null) {
@@ -155,7 +158,8 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
         if (group != undefined) {
             this.terminal?.writeln(`\x1b[92mRunning group: ${group.name}\x1b[0m`);
         }
-        this.worker.then((worker) => {
+        return this.worker.then((worker) => {
+            this.groupStartedAt = performance.now();
             worker.postMessage({ code, flags, inputs: inputs.map(({ input }) => input), workerNumber: this.workerCounter } as RunRequest);
         });
     }
@@ -177,14 +181,16 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
         this.runAllGroups = group == null;
         this.code = code;
         this.flags = flags;
-        if (timeout != null) {
-            this.timeoutHandle = window.setTimeout(() => {
-                this.terminate(TerminateReason.TimedOut);
-            }, timeout * 1000);
-        } else {
-            this.timeoutHandle = null;
-        }
-        this.runNextGroup(code, flags);
+        this.runNextGroup(code, flags).then(() => {
+            this.executionStartedAt = this.groupStartedAt;
+            if (timeout != null) {
+                this.timeoutHandle = window.setTimeout(() => {
+                    this.terminate(TerminateReason.TimedOut);
+                }, timeout * 1000);
+            } else {
+                this.timeoutHandle = null;
+            }
+        });
     }
 
     terminate(reason: TerminateReason = TerminateReason.Terminated) {
