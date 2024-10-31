@@ -44,9 +44,10 @@ type InputGroupElementProps = {
     dispatchInputs: Dispatch<InputsReducerAction>,
     state: RunState,
     run(): unknown,
+    scrollTo(group: number): unknown,
 };
 
-function InputGroupElement({ group, inputs: { name, inputs }, dispatchInputs, state, run }: InputGroupElementProps) {
+function InputGroupElement({ group, inputs: { name, inputs }, dispatchInputs, state, run, scrollTo }: InputGroupElementProps) {
     return <div className="d-flex flex-column border rounded mb-2 mx-2">
         <div className="hstack bg-body-secondary p-2 border-bottom rounded-top">
             <BsInputGroup>
@@ -75,7 +76,16 @@ function InputGroupElement({ group, inputs: { name, inputs }, dispatchInputs, st
             <Button variant="secondary-bg" className="ms-auto me-2" onClick={() => dispatchInputs({ type: "delete-group", group })}>
                 <i className="bi bi-trash2"></i>
             </Button>
-            <Button variant="secondary-bg" className="me-2" onClick={() => dispatchInputs({ type: "duplicate-group", group })}>
+            <Button
+                variant="secondary-bg"
+                className="me-2"
+                onClick={() => {
+                    flushSync(() => {
+                        dispatchInputs({ type: "duplicate-group", group });
+                    });
+                    scrollTo(group + 1);
+                }}
+            >
                 <i className="bi bi-copy"></i>
             </Button>
             <Button variant="primary" onClick={() => dispatchInputs({ type: "append-input", group })}>
@@ -115,18 +125,22 @@ type InputListProps = {
 
 export function InputList({ inputs, dispatchInputs, state, run }: InputListProps) {
     const inputListRef = useRef<HTMLDivElement | null>(null);
-    
+
     const onDragEnd = useCallback((result: DropResult) => {
         if (result.destination != null) {
             dispatchInputs({ type: "reorder-input", group: Number.parseInt(result.destination.droppableId), input: result.source.index, moveTo: result.destination.index });
         }
     }, [dispatchInputs]);
+    const scrollTo = useCallback((group: number) => {
+        inputListRef.current!.children.item(group)!.scrollIntoView({
+            behavior: "smooth",
+        });
+    }, [inputListRef]);
+
 
     useEffect(() => {
         if (state.name == "running") {
-            inputListRef.current!.children.item(state.group)!.scrollIntoView({
-                behavior: "smooth",
-            });
+            scrollTo(state.group);
         }
     }, [state]);
 
@@ -139,6 +153,7 @@ export function InputList({ inputs, dispatchInputs, state, run }: InputListProps
                     inputs={inputs}
                     dispatchInputs={dispatchInputs}
                     run={() => run(index)}
+                    scrollTo={scrollTo}
                     state={state}
                 />
             )) : (
