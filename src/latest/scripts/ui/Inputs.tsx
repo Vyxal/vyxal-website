@@ -1,5 +1,5 @@
 import { DragDropContext, Draggable, Droppable, DropResult } from "@hello-pangea/dnd";
-import { Dispatch, useCallback, useRef } from "react";
+import { Dispatch, useCallback, useEffect, useRef } from "react";
 import { InputGroup as BsInputGroup, Button, FormControl, Spinner } from "react-bootstrap";
 import { Input, InputGroup, Inputs, InputsReducerAction } from "../interpreter/inputs";
 import TextareaAutosize from 'react-textarea-autosize';
@@ -115,11 +115,20 @@ type InputListProps = {
 
 export function InputList({ inputs, dispatchInputs, state, run }: InputListProps) {
     const inputListRef = useRef<HTMLDivElement | null>(null);
+    
     const onDragEnd = useCallback((result: DropResult) => {
         if (result.destination != null) {
             dispatchInputs({ type: "reorder-input", group: Number.parseInt(result.destination.droppableId), input: result.source.index, moveTo: result.destination.index });
         }
     }, [dispatchInputs]);
+
+    useEffect(() => {
+        if (state.name == "running") {
+            inputListRef.current!.children.item(state.group)!.scrollIntoView({
+                behavior: "smooth",
+            });
+        }
+    }, [state]);
 
     return <DragDropContext onDragEnd={onDragEnd}>
         <div ref={inputListRef}>
