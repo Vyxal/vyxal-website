@@ -3,14 +3,16 @@ import { ElementDataContext } from "../../interpreter/element-data";
 import { Card, Col, Nav, Offcanvas, Row, Tab } from "react-bootstrap";
 import { Form } from "react-bootstrap";
 import { ThingCard } from "../ThingCard";
+import { ElementsSide } from "../settings";
 
 type ElementOffcanvasProps = {
     show: boolean,
     setShow: Dispatch<SetStateAction<boolean>>,
+    side: keyof typeof ElementsSide,
     insertCharacter: (char: string) => void,
 };
 
-export function ElementOffcanvas({ show, setShow, insertCharacter }: ElementOffcanvasProps) {
+export function ElementOffcanvas({ show, setShow, side, insertCharacter }: ElementOffcanvasProps) {
     const elementData = useContext(ElementDataContext)!;
     const [tab, setTab] = useState("search");
     const [query, setQuery] = useState("");
@@ -19,7 +21,7 @@ export function ElementOffcanvas({ show, setShow, insertCharacter }: ElementOffc
     ) : [...elementData.elements.values(), ...elementData.modifiers.values(), ...elementData.syntax.values()];
     const codepage = elementData.codepageRaw;
 
-    return <Offcanvas show={show} onHide={() => setShow(false)} style={{ width: "600px" }}>
+    return <Offcanvas show={show} onHide={() => setShow(false)} style={{ width: "600px" }} placement={ElementsSide[side]}>
         <Tab.Container activeKey={tab} onSelect={(tab) => setTab(tab!)}>
             <Offcanvas.Header closeButton>
                 <Nav variant="pills" className="flex-nowrap me-3 overflow-x-auto">

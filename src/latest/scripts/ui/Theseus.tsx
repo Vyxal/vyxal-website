@@ -166,7 +166,10 @@ export function Theseus({ permalink }: TheseusProps) {
         <FlagsDialog flags={flags} setFlags={setFlags} show={showFlagsDialog} setShow={setShowFlagsDialog} />
         <ShareDialog bytecount={bytecount} code={code} flags={[...serializeFlags(elementData.flagDefs, flags)].join("")} show={showShareDialog} setShow={setShowShareDialog} />
         <ElementOffcanvas
-            show={showElementOffcanvas} setShow={setShowElementOffcanvas} insertCharacter={(char) => {
+            show={showElementOffcanvas}
+            setShow={setShowElementOffcanvas}
+            side={settings.elementsSide}
+            insertCharacter={(char) => {
                 const view = lastFocusedEditor?.view;
                 if (view != null) {
                     view.dispatch(view.state.replaceSelection(char));

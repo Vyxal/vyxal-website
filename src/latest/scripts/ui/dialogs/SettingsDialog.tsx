@@ -1,8 +1,83 @@
-import { Dispatch, SetStateAction, memo, useEffect, useRef } from "react";
+import { ChangeEvent, Dispatch, ReactNode, SetStateAction, createContext, memo, useCallback, useContext, useEffect, useRef } from "react";
 import { Button, FormCheck, FormLabel, FormText, Modal, ToggleButton, ToggleButtonGroup } from "react-bootstrap";
-import { Settings, Theme, isTheSeason } from "../settings";
+import { ElementsSide, Settings, Theme, isTheSeason } from "../settings";
+import type { Updater } from "use-immer";
+import type { Draft } from "immer";
 import FormRange from "react-bootstrap/esm/FormRange";
-import { Updater } from "use-immer";
+
+const SettingsContext = createContext<{ settings: Settings, setSettings: Updater<Settings> } | null>(null);
+
+type SettingsValuesOfType<T> = { [K in keyof Settings]: Settings[K] extends T ? K : never }[keyof Settings];
+
+type SettingsSwitchChangeHandler = (checked: boolean, draft: Draft<Settings>) => unknown;
+type SettingsSwitchProps = {
+    name: string,
+    checked: boolean,
+    disabled?: boolean,
+    onChange: SettingsSwitchChangeHandler,
+    children: ReactNode,
+};
+
+function SettingsSwitch({ name, checked, onChange, disabled, children }: SettingsSwitchProps) {
+    const { setSettings } = useContext(SettingsContext)!;
+    const handleChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+        setSettings((settings) => {
+            onChange(event.target.checked, settings);
+        });
+    }, [onChange]);
+    return <div>
+        <FormCheck
+            type="switch"
+            name={name}
+            checked={checked}
+            disabled={disabled}
+            onChange={handleChange}
+            label={children}
+        />
+    </div>;
+}
+
+type BooleanSettingsSwitchProps = {
+    property: SettingsValuesOfType<boolean>,
+    children: ReactNode,
+};
+
+function BooleanSettingsSwitch({ property, children }: BooleanSettingsSwitchProps) {
+    const { settings } = useContext(SettingsContext)!;
+    const handleChange = useCallback<SettingsSwitchChangeHandler>((checked, draft) => {
+        draft[property] = checked;
+    }, [property]);
+    return <SettingsSwitch name={property} checked={settings[property]} onChange={handleChange}>
+        {children}
+    </SettingsSwitch>;
+}
+
+type SettingsToggleButtonGroupProps<E extends Record<string, string>> = {
+    name: string,
+    enumType: E,
+    property: SettingsValuesOfType<keyof E>,
+    children: ReactNode,
+};
+
+function SettingsToggleButtonGroup<E extends Record<string, string>>({ name, enumType, property, children }: SettingsToggleButtonGroupProps<E>) {
+    const { settings, setSettings } = useContext(SettingsContext)!;
+    return <div>
+        <FormLabel htmlFor={name}>{children}</FormLabel>
+        <ToggleButtonGroup
+            className="d-block"
+            name={name}
+            type="radio"
+            value={settings[property]}
+            onChange={(key) => setSettings((draft) => {
+                draft[property] = key;
+            })}
+        >
+            {Object.keys(enumType).map((key, index) => (
+                <ToggleButton id={`${name}-${index}`} key={index} value={key}>{key}</ToggleButton>
+            ))}
+        </ToggleButtonGroup>
+    </div>;
+}
 
 type SettingsDialogProps = {
     settings: Settings,
@@ -37,78 +112,58 @@ export const SettingsDialog = memo(function({ settings, setSettings, timeout, se
         <Modal.Header closeButton>
             <Modal.Title>Settings</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-            <div className="mb-3">
-                <FormLabel htmlFor="theme">Theme</FormLabel>
-                <ToggleButtonGroup
-                    className="d-block"
+        <Modal.Body className="settings-body">
+            <SettingsContext.Provider value={{ settings, setSettings }}>
+                <SettingsToggleButtonGroup
                     name="theme"
-                    type="radio"
-                    value={Theme[settings.theme]}
-                    onChange={(theme) => setSettings((settings) => {
-                        settings.theme = Theme[theme as keyof typeof Theme];
-                    })}
+                    enumType={Theme}
+                    property="theme"
                 >
-                    {(Object.values(Theme).filter(value => typeof value === "string") as string[])
-                        .map((theme, i) => <ToggleButton key={i} id={`theme-${i}`} value={theme}>{theme}</ToggleButton>)
-                    }
-                </ToggleButtonGroup>
-            </div>
-            <div className="mb-3">
-                <FormCheck
-                    type="switch"
-                    name="literate-by-default"
-                    checked={settings.literateByDefault}
-                    onChange={(event) => setSettings((settings) => {
-                        settings.literateByDefault = event.target.checked;
-                    })}
-                    label="Default to literate mode in a new editor"
-                />
-            </div>
-            <div className="mb-3">
-                <FormCheck
-                    type="switch"
+                    Theme
+                </SettingsToggleButtonGroup>
+                <SettingsToggleButtonGroup
+                    name={"elements-side"}
+                    enumType={ElementsSide}
+                    property="elementsSide"
+                >
+                    Element list side
+                </SettingsToggleButtonGroup>
+                <BooleanSettingsSwitch property="literateByDefault">
+                    Default to literate mode in a new editor
+                </BooleanSettingsSwitch>
+                <SettingsSwitch
                     name="bracket-matching"
                     checked={settings.highlightBrackets != "no"}
-                    onChange={(event) => setSettings((settings) => {
-                        settings.highlightBrackets = event.target.checked ? "yes" : "no";
-                    })}
-                    label="Highlight matching brackets"
-                />
-            </div>
-            <div className="mb-3">
-                <FormCheck
-                    type="switch"
+                    onChange={(checked, draft) => draft.highlightBrackets = checked ? "yes" : "no"}
+                >
+                    Highlight matching brackets
+                </SettingsSwitch>
+                <SettingsSwitch
                     name="bracket-matching-eof"
                     disabled={settings.highlightBrackets == "no"}
                     checked={settings.highlightBrackets == "yes-eof"}
-                    onChange={(event) => setSettings((settings) => {
-                        settings.highlightBrackets = event.target.checked ? "yes-eof" : "yes";
-                    })}
-                    label="Show indicator when brackets are closed by EOF"
-                />
-            </div>
-            <div className="mb-3">
+                    onChange={(checked, draft) => draft.highlightBrackets = checked ? "yes-eof" : "yes"}
+                >
+                    Show indicator when brackets are closed by EOF
+                </SettingsSwitch>
                 <FormLabel htmlFor="timeout">
                     <i className="bi bi-link-45deg"></i> Timeout
                     <FormCheck type="switch"  className="d-inline-block ms-2" name="timeout-enabled" checked={timeout != null} onChange={(event) => setTimeout(event.target.checked ? 10 : null)} />
                 </FormLabel>
                 <FormRange name="timeout" step="5" max="60" min="10" disabled={timeout == null} value={timeout != null ? timeout : 10} onChange={(event) => setTimeout(Number.parseInt(event.target.value))} />
                 <FormText>{timeout != null ? `${timeout} seconds` : "infinite"}</FormText>
-            </div>
-            {(isTheSeason() || settings.snowing == "always") && (
-                <FormCheck
-                    type="switch"
-                    name="seasonal-mode"
-                    checked={settings.snowing != "no"}
-                    onChange={(event) => setSettings((settings) => {
-                        settings.snowing = event.target.checked ? "yes" : (settings.snowing == "always" ? "yes" : "no");
-                    })}
-                    label={<><i className="bi bi-snow"></i> Seasonal decorations</>}
-                />
-            )}
-            <hr />
-            <FormText>settings with <i className="bi bi-link-45deg"></i> are saved in the permalink</FormText>
+                {(isTheSeason() || settings.snowing == "always") && (
+                    <SettingsSwitch
+                        name="seasonal-mode"
+                        checked={settings.snowing != "no"}
+                        onChange={(checked, draft) => draft.snowing = (checked || settings.snowing == "always") ? "yes" : "no"}
+                    >
+                        <i className="bi bi-snow"></i> Seasonal decorations
+                    </SettingsSwitch>
+                )}
+                <hr />
+                <FormText>settings with <i className="bi bi-link-45deg"></i> are saved in the permalink</FormText>
+            </SettingsContext.Provider>
         </Modal.Body>
         <Modal.Footer>
             {/* @ts-expect-error VERSION gets replaced by Webpack */}

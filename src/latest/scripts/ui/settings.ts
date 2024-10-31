@@ -1,21 +1,27 @@
-export enum Theme {
-    Dark, Light,
-}
+export const Theme = {
+    Dark: "Dark",
+    Light: "Light",
+} as const;
+
+export const ElementsSide = {
+    Left: "start",
+    Right: "end",
+} as const;
 
 export type Settings = {
-    theme: Theme,
+    theme: keyof typeof Theme,
     literateByDefault: boolean,
     snowing: "yes" | "no" | "always",
     highlightBrackets: "yes" | "yes-eof" | "no",
+    elementsSide: keyof typeof ElementsSide,
 };
 
-type SettingsRaw = Omit<Settings, "theme"> & { theme: keyof typeof Theme };
-
-const defaultSettings: SettingsRaw = {
+const defaultSettings: Settings = {
     theme: "Dark",
     literateByDefault: false,
     snowing: "yes",
     highlightBrackets: "yes",
+    elementsSide: "Right",
 };
 
 
@@ -34,7 +40,7 @@ export function isTheSeason() {
 }
 
 export function loadSettings(): Settings {
-    let localSettings: SettingsRaw;
+    let localSettings: Settings;
     try {
         localSettings = {
             ...defaultSettings,
@@ -44,15 +50,9 @@ export function loadSettings(): Settings {
         console.warn("Failed to parse settings!", e);
         localSettings = defaultSettings;
     }
-    return {
-        ...localSettings,
-        theme: Theme[localSettings.theme],
-    };
+    return localSettings;
 }
 
 export function saveSettings(settings: Settings) {
-    localStorage.setItem("settings", JSON.stringify({
-        ...settings,
-        theme: Theme[settings.theme],
-    } as SettingsRaw));
+    localStorage.setItem("settings", JSON.stringify(settings));
 }

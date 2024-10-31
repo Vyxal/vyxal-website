@@ -114,3 +114,7 @@ textarea {
     -webkit-user-select: none; /* Safari */
     user-select: none;
 }
+
+.settings-body > div {
+    @extend .mb-3;
+}
