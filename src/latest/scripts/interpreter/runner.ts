@@ -28,6 +28,7 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
     private inputs: Inputs;
     private code: string;
     private flags: string[];
+    private timeout: number | null;
     private currentGroup: number = 0;
     private runAllGroups: boolean = true;
     private groupStartedAt: number;
@@ -134,6 +135,9 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
                     break;
                 }
                 case "done":{
+                    if (this.timeoutHandle != null) {
+                        window.clearTimeout(this.timeoutHandle);
+                    }
                     const now = performance.now();
                     this.terminal?.writeln(`\n\x1b[0G\x1b[0;2mFinished in ${Math.round((now - this.groupStartedAt)) / 1000} seconds\x1b[0m`);
                     if (this.runAllGroups && this.inputs.length > 0 && ++this.currentGroup != this.inputs.length && this._state == "running") {
@@ -142,9 +146,6 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
                         this.terminal?.writeln(`\x1b[1;92mExecution completed\x1b[0m in ${Math.round((now - this.executionStartedAt)) / 1000} seconds`);
                         this._state = "idle";
                         this.runningGroupChanged(null);
-                        if (this.timeoutHandle != null) {
-                            window.clearTimeout(this.timeoutHandle);
-                        }
                     }
                     break;
                 }
@@ -160,6 +161,11 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
         }
         return this.worker.then((worker) => {
             this.groupStartedAt = performance.now();
+            if (this.timeout != null) {
+                this.timeoutHandle = window.setTimeout(() => {
+                    this.terminate(TerminateReason.TimedOut);
+                }, this.timeout * 1000);
+            }
             worker.postMessage({ code, flags, inputs: inputs.map(({ input }) => input), workerNumber: this.workerCounter } as RunRequest);
         });
     }
@@ -181,15 +187,9 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
         this.runAllGroups = group == null;
         this.code = code;
         this.flags = flags;
+        this.timeout = timeout;
         this.runNextGroup(code, flags).then(() => {
             this.executionStartedAt = this.groupStartedAt;
-            if (timeout != null) {
-                this.timeoutHandle = window.setTimeout(() => {
-                    this.terminate(TerminateReason.TimedOut);
-                }, timeout * 1000);
-            } else {
-                this.timeoutHandle = null;
-            }
         });
     }
 
