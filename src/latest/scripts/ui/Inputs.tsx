@@ -20,7 +20,7 @@ function InputElement({ group, input, index, onInputChange, onInputDelete }: Inp
             return <BsInputGroup className="mb-2 px-2" ref={provided.innerRef} {...provided.draggableProps}>
                 <BsInputGroup.Text {...provided.dragHandleProps}><i className="bi bi-grip-vertical"></i></BsInputGroup.Text>
                 <TextareaAutosize
-                    className="form-control"
+                    className="form-control font-monospace"
                     placeholder="Input"
                     value={input.input}
                     onChange={(e) => onInputChange(e.currentTarget.value)}
