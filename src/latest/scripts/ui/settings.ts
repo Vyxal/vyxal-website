@@ -1,3 +1,6 @@
+import { useEffect, useMemo, useState } from "react";
+import { Updater, useImmer } from "use-immer";
+
 export const Theme = {
     Dark: "Dark",
     Light: "Light",
@@ -8,7 +11,7 @@ export const ElementsSide = {
     Right: "end",
 } as const;
 
-export type Settings = {
+export type SettingsState = {
     theme: keyof typeof Theme,
     literateByDefault: boolean,
     snowing: "yes" | "no" | "always",
@@ -16,8 +19,17 @@ export type Settings = {
     elementsSide: keyof typeof ElementsSide,
 };
 
+export const ThemeSetting = {
+    ...Theme,
+    System: "System",
+} as const;
+
+export type Settings = Omit<SettingsState, "theme"> & {
+    theme: keyof typeof ThemeSetting,
+};
+
 const defaultSettings: Settings = {
-    theme: "Dark",
+    theme: "System",
     literateByDefault: false,
     snowing: "yes",
     highlightBrackets: "yes",
@@ -39,7 +51,7 @@ export function isTheSeason() {
     return false;
 }
 
-export function loadSettings(): Settings {
+function loadSettings(): Settings {
     let localSettings: Settings;
     try {
         localSettings = {
@@ -53,6 +65,33 @@ export function loadSettings(): Settings {
     return localSettings;
 }
 
-export function saveSettings(settings: Settings) {
+function saveSettings(settings: Settings) {
     localStorage.setItem("settings", JSON.stringify(settings));
+}
+
+export function useSettings(): [SettingsState, Settings, Updater<Settings>] {
+    const prefersLightModeQuery = useMemo(() => window.matchMedia("(prefers-color-scheme: light)"), []);
+    const [settings, setSettings] = useImmer(() => loadSettings());
+    const [prefersLightMode, setPrefersLightMode] = useState(prefersLightModeQuery.matches);
+
+    useEffect(() => {
+        const listener = (event: MediaQueryListEvent) => {
+            setPrefersLightMode(event.matches);
+        };
+        prefersLightModeQuery.addEventListener("change", listener);
+        return () => {
+            prefersLightModeQuery.removeEventListener("change", listener);  
+        };
+    }, [prefersLightModeQuery]);
+
+    useEffect(() => {
+        saveSettings(settings);
+    }, [settings]);
+
+    const settingsState: SettingsState = {
+        ...settings,
+        theme: settings.theme == "System" ? (prefersLightMode ? "Light" : "Dark") : settings.theme,
+    };
+
+    return [settingsState, settings, setSettings];
 }

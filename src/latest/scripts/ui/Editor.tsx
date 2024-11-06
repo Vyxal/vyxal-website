@@ -5,7 +5,7 @@ import { vscodeDark } from "@uiw/codemirror-theme-vscode";
 import { vyxalCompletion } from "../language/sbcs/autocomplete";
 import { autocompletion } from "@codemirror/autocomplete";
 import { EditorView, highlightActiveLine, highlightActiveLineGutter, lineNumbers, showPanel } from "@codemirror/view";
-import { Settings, Theme } from "./settings";
+import { SettingsState, Theme } from "./settings";
 import { githubLight } from "@uiw/codemirror-theme-github";
 import { ElementDataContext } from "../interpreter/element-data";
 import { createPortal } from "react-dom";
@@ -54,7 +54,7 @@ type EditorProps = {
     utilWorker: UtilWorker,
     code: string,
     setCode: Dispatch<SetStateAction<string>>,
-    settings: Settings,
+    settings: SettingsState,
     literate: boolean,
     claimFocus: (state: ReactCodeMirrorRef) => unknown,
     autoFocus?: boolean,

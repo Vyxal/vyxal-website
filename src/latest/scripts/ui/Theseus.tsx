@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useContext, useEffect, useRef, useState } 
 import Header from "./Header";
 import { Spinner, Tab, Nav, Button } from "react-bootstrap";
 import { useImmer, useImmerReducer } from "use-immer";
-import { isTheSeason, loadSettings, saveSettings, Settings, Theme } from "./settings";
+import { isTheSeason, Theme, useSettings } from "./settings";
 import { UtilWorker } from "../workers/util-api";
 import { VyTerminalRef } from "./VyTerminal";
 import { SettingsDialog } from "./dialogs/SettingsDialog";
@@ -48,12 +48,12 @@ export function Theseus({ permalink }: TheseusProps) {
     const elementData = useContext(ElementDataContext)!;
     const utilWorker = new UtilWorker(elementData.codepage);
 
-    const [settings, setSettings] = useImmer<Settings>(loadSettings());
+    const [settingsState, settings, setSettings] = useSettings();
     const [timeout, setTimeout] = useState<number | null>(10);
 
     const [flags, setFlags] = useImmer<Flags>(() => {
         const initial = deserializeFlags(elementData.flagDefs, new Set(permalink?.flags ?? []));
-        if (permalink == null && settings.literateByDefault) {
+        if (permalink == null && settingsState.literateByDefault) {
             initial.set(LITERATE_MODE_FLAG_NAME, true);
         }
         return initial;
@@ -79,7 +79,7 @@ export function Theseus({ permalink }: TheseusProps) {
     const snowflakesRef = useRef<Snowflakes | null>(null);
     
     useEffect(() => {
-        switch (settings.theme) {
+        switch (settingsState.theme) {
             case Theme.Dark:
                 document.body.dataset["bsTheme"] = "dark";
                 break;
@@ -87,7 +87,7 @@ export function Theseus({ permalink }: TheseusProps) {
                 document.body.dataset["bsTheme"] = "light";
                 break;
         }
-        if (settings.snowing == "always" || (settings.snowing == "yes" && isTheSeason())) {
+        if (settingsState.snowing == "always" || (settingsState.snowing == "yes" && isTheSeason())) {
             import(
                 /* webpackChunkName: "magic-snowflakes" */
                 "magic-snowflakes"
@@ -102,12 +102,11 @@ export function Theseus({ permalink }: TheseusProps) {
             snowflakesRef.current?.stop();
             snowflakesRef.current?.hide();
         }
-        saveSettings(settings);
         return () => {
             snowflakesRef.current?.stop();
             snowflakesRef.current?.hide();
         };
-    }, [settings]);
+    }, [settingsState]);
 
     useEffect(() => {
         encodeHash({
@@ -168,7 +167,7 @@ export function Theseus({ permalink }: TheseusProps) {
         <ElementOffcanvas
             show={showElementOffcanvas}
             setShow={setShowElementOffcanvas}
-            side={settings.elementsSide}
+            side={settingsState.elementsSide}
             insertCharacter={(char) => {
                 const view = lastFocusedEditor?.view;
                 if (view != null) {
@@ -197,10 +196,10 @@ export function Theseus({ permalink }: TheseusProps) {
                             </div>
                         }
                     >
-                        <Editor utilWorker={utilWorker} code={header} setCode={setHeader} settings={settings} literate={literate} claimFocus={setLastFocusedEditor} height="20cqh">
+                        <Editor utilWorker={utilWorker} code={header} setCode={setHeader} settings={settingsState} literate={literate} claimFocus={setLastFocusedEditor} height="20cqh">
                             Header
                         </Editor>
-                        <Editor utilWorker={utilWorker} code={code} setCode={setCode} settings={settings} literate={literate} claimFocus={setLastFocusedEditor} autoFocus height="60cqh">
+                        <Editor utilWorker={utilWorker} code={code} setCode={setCode} settings={settingsState} literate={literate} claimFocus={setLastFocusedEditor} autoFocus height="60cqh">
                             <div className="d-flex align-items-center">
                                 {bytecount}
                                 {literate ? (
@@ -210,7 +209,7 @@ export function Theseus({ permalink }: TheseusProps) {
                                 ) : null}
                             </div>
                         </Editor>
-                        <Editor utilWorker={utilWorker} code={footer} setCode={setFooter} settings={settings} literate={literate} claimFocus={setLastFocusedEditor} height="20cqh">
+                        <Editor utilWorker={utilWorker} code={footer} setCode={setFooter} settings={settingsState} literate={literate} claimFocus={setLastFocusedEditor} height="20cqh">
                             Footer
                         </Editor>
                     </Suspense>

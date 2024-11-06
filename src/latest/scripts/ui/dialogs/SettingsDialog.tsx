@@ -1,6 +1,6 @@
 import { ChangeEvent, Dispatch, ReactNode, SetStateAction, createContext, memo, useCallback, useContext, useEffect, useRef } from "react";
 import { Button, FormCheck, FormLabel, FormText, Modal, ToggleButton, ToggleButtonGroup } from "react-bootstrap";
-import { ElementsSide, Settings, Theme, isTheSeason } from "../settings";
+import { ElementsSide, Settings, ThemeSetting, isTheSeason } from "../settings";
 import type { Updater } from "use-immer";
 import type { Draft } from "immer";
 import FormRange from "react-bootstrap/esm/FormRange";
@@ -116,7 +116,7 @@ export const SettingsDialog = memo(function({ settings, setSettings, timeout, se
             <SettingsContext.Provider value={{ settings, setSettings }}>
                 <SettingsToggleButtonGroup
                     name="theme"
-                    enumType={Theme}
+                    enumType={ThemeSetting}
                     property="theme"
                 >
                     Theme
