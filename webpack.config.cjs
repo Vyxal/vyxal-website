@@ -101,7 +101,7 @@ module.exports = function (env, argv) {
                 let match = /https?:\/\/vyxal.github.io\/Vyxal\/(.*\.(js))/.exec(request)
                 if (match) {
                     if (env["vy-archive"] != undefined) {
-                        return callback(null, `./${env["vy-archive"]}/${match[1]}`, "import")
+                        return callback(null, `../${env["vy-archive"]}/${match[1]}`, "import")
                     }
                     return callback(null, request, "import")
                 }
