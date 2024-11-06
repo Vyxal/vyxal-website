@@ -2,14 +2,16 @@
 @import "~bootstrap/scss/functions";
 @import "~bootstrap/scss/variables";
 @import "~bootstrap/scss/variables-dark";
-@import "~bootstrap/scss/maps";
-@import "~bootstrap/scss/mixins";
-@import "~bootstrap/scss/utilities";
 
 $custom-colors: (
     "ourple": #712cf9
 );
 $theme-colors: map-merge($theme-colors, $custom-colors);
+
+@import "~bootstrap/scss/maps";
+@import "~bootstrap/scss/mixins";
+@import "~bootstrap/scss/utilities";
+
 $utilities: map-merge(
   $utilities,
   (
@@ -18,7 +20,7 @@ $utilities: map-merge(
         class: container-type,
         values: size inline-size normal,
     )
-  )
+    )
 );
 
 // Layout & components
