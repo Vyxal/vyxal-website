@@ -4,7 +4,7 @@ import { EditorView } from "codemirror";
 import { vyxalLitLanguage } from "../../common/scripts/language/vyxal-lit";
 import { vscodeDark } from "@uiw/codemirror-theme-vscode";
 
-const view = new EditorView({
+new EditorView({
     doc: fizzbuzz,
     extensions: [EditorView.editable.of(false), new LanguageSupport(vyxalLitLanguage), vscodeDark],
     parent: document.getElementById("cm-parent")!,
