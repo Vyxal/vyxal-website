@@ -153,6 +153,7 @@ export function Theseus({ permalink }: TheseusProps) {
         }
     }, [code, flags, inputs, timeout, runnerRef, state]);
 
+    throw new Error("frob")
     return <>
         <SettingsDialog
             settings={settings}
