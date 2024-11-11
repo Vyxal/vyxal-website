@@ -1,23 +1,27 @@
 import { syntaxTree } from "@codemirror/language";
-import { Range } from "@codemirror/state";
-import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
+import { Compartment, Facet, Prec, Range } from "@codemirror/state";
+import { Decoration, DecorationSet, EditorView, PluginSpec, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
 import { UtilWorker } from "../../workers/util-api";
-import { SyntaxNode } from "@lezer/common";
 
 class CompressButtonWidget extends WidgetType {
-    eq(): boolean {
-        return true;
+    toDOM(): HTMLElement {
+        const container = document.createElement("span");
+        container.classList.add("cm-placeholder");
+        const spinner = container.appendChild(document.createElement("div"));
+        spinner.classList.add("spinner-border", "spinner-border-sm");
+        spinner.hidden = true;
+        const icon = container.appendChild(document.createElement("i"));
+        icon.ariaHidden = "true";
+        icon.classList.add("cm-compress-button", "bi", "bi-file-zip");
+        icon.style.cursor = "pointer";
+        return container;
     }
 
-    toDOM(): HTMLElement {
-        const icon = document.createElement("i");
-        icon.ariaHidden = "true";
-        icon.classList.add("cm-compress-button");
-        icon.classList.add("cm-placeholder");
-        icon.classList.add("bi");
-        icon.classList.add("bi-file-zip");
-        icon.style.cursor = "pointer";
-        return icon;
+    updateDOM(dom: HTMLElement, view: EditorView): boolean {
+        const compressing = view.state.facet(CompressButtonPlugin.compressing);
+        dom.querySelector<HTMLElement>(".spinner-border")!.hidden = !compressing;
+        dom.querySelector<HTMLElement>(".cm-compress-button")!.hidden = compressing;
+        return true;
     }
 
     ignoreEvent(): boolean {
@@ -44,51 +48,65 @@ function insertButtons(view: EditorView) {
     return Decoration.set(widgets);
 }
 
-export function compressButtonPlugin(util: UtilWorker) {
-    return ViewPlugin.fromClass(class {
-        decorations: DecorationSet;
-    
-        constructor(view: EditorView) {
-            this.decorations = insertButtons(view);
-        }
-    
-        update(update: ViewUpdate) {
-            if (update.docChanged || update.viewportChanged || syntaxTree(update.startState) != syntaxTree(update.state)) {
-                this.decorations = insertButtons(update.view);
-            }
-        }
-    }, {
+class CompressButtonPlugin {
+    private static lock = new Compartment;
+    static compressing = Facet.define<boolean, boolean>({ combine: values => values.length ? values[0] : false });
+    static spec: PluginSpec<CompressButtonPlugin> = {
         decorations: (v) => v.decorations,
         eventHandlers: {
-            click: (event, view) => {
+            click: function(event, view) {
                 const target = event.target as HTMLElement;
                 if (target.classList.contains("cm-compress-button")) {
-                    return toggleCompression(util, view, syntaxTree(view.state).resolveInner(view.posAtDOM(target), -1));
+                    return this.toggleCompression(view, view.posAtDOM(target));
                 }
                 return false;
             },
         },
-    });
+        provide: () => CompressButtonPlugin.lock.of([]),
+    };
+    decorations: DecorationSet;
+
+    constructor(view: EditorView, private readonly util: UtilWorker) {
+        this.decorations = insertButtons(view);
+    }
+
+    update(update: ViewUpdate) {
+        this.decorations = insertButtons(update.view);
+    }
+
+    private toggleCompression(view: EditorView, position: number) {
+        if (view.state.facet(CompressButtonPlugin.compressing)) {
+            return false;
+        }
+        const node = syntaxTree(view.state).resolveInner(position, -1);
+        if (node.name == "String") {
+            let text = view.state.sliceDoc(node.from, node.to);
+            const isCompressed = text.endsWith("”");
+            if (!(isCompressed || text.endsWith(`"`))) {
+                text += `"`;
+            }
+            const trimmed = text.slice(1, -1);
+            view.dispatch({
+                effects: CompressButtonPlugin.lock.reconfigure(Prec.highest([
+                    EditorView.editable.of(false), CompressButtonPlugin.compressing.of(true),
+                ])),
+            });
+            (isCompressed ? this.util.decompress(trimmed) : this.util.compress(trimmed)).then((result) => {
+                view.dispatch({
+                    changes: {
+                        from: node.from,
+                        to: node.to,
+                        insert: isCompressed ? `"${result}"` : `"${result}”`,
+                    },
+                    effects: CompressButtonPlugin.lock.reconfigure([]),
+                });
+            });
+            return true;
+        }
+        return false;
+    }
 }
 
-export function toggleCompression(util: UtilWorker, view: EditorView, node: SyntaxNode) {
-    if (node.name == "String") {
-        let text = view.state.sliceDoc(node.from, node.to);
-        const isCompressed = text.endsWith("”");
-        if (!(isCompressed || text.endsWith(`"`))) {
-            text += `"`;
-        }
-        const trimmed = text.slice(1, -1);
-        (isCompressed ? util.decompress(trimmed) : util.compress(trimmed).then((r) => r.slice(1, -1))).then((result) => {
-            view.dispatch({
-                changes: {
-                    from: node.from,
-                    to: node.to,
-                    insert: isCompressed ? `"${result}"` : `"${result}”`,
-                },
-            });
-        });
-        return true;
-    }
-    return false;
+export function compressButtonPlugin(util: UtilWorker) {
+    return ViewPlugin.define((view) => new CompressButtonPlugin(view, util), CompressButtonPlugin.spec);
 }

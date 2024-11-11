@@ -80,7 +80,7 @@ export class UtilWorker {
         return (await this.send<string>({
             type: "compress",
             text: decompressed,
-        }));
+        })).slice(1, -1);
     }
 
     async decompress(compressed: string) {
