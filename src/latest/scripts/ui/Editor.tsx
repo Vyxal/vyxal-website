@@ -52,7 +52,7 @@ const THEMES = {
 
 type EditorProps = {
     utilWorker: UtilWorker,
-    code: string,
+    initialValue: string,
     setCode: Dispatch<SetStateAction<string>>,
     settings: SettingsState,
     literate: boolean,
@@ -73,7 +73,7 @@ function EditorError({ error, resetErrorBoundary }: FallbackProps) {
     </Stack>;
 }
 
-export default function Editor({ utilWorker, code, children, setCode, settings, literate, claimFocus, autoFocus, height }: EditorProps) {
+export default function Editor({ utilWorker, initialValue, children, setCode, settings, literate, claimFocus, autoFocus, height }: EditorProps) {
     const elementData = useContext(ElementDataContext)!;
     const editorRef = useRef<ReactCodeMirrorRef | null>(null);
     const onChange = useCallback((code: string) => {
@@ -110,7 +110,7 @@ export default function Editor({ utilWorker, code, children, setCode, settings, 
             <ReactCodeMirror
                 basicSetup={false}
                 theme={THEMES[settings.theme]}
-                value={code}
+                value={initialValue}
                 onChange={onChange}
                 extensions={extensions}
                 ref={editorRef}

@@ -196,10 +196,10 @@ export function Theseus({ permalink }: TheseusProps) {
                             </div>
                         }
                     >
-                        <Editor utilWorker={utilWorker} code={header} setCode={setHeader} settings={settingsState} literate={literate} claimFocus={setLastFocusedEditor} height="20cqh">
+                        <Editor utilWorker={utilWorker} initialValue={permalink?.header ?? ""} setCode={setHeader} settings={settingsState} literate={literate} claimFocus={setLastFocusedEditor} height="20cqh">
                             Header
                         </Editor>
-                        <Editor utilWorker={utilWorker} code={code} setCode={setCode} settings={settingsState} literate={literate} claimFocus={setLastFocusedEditor} autoFocus height="60cqh">
+                        <Editor utilWorker={utilWorker} initialValue={permalink?.code ?? ""} setCode={setCode} settings={settingsState} literate={literate} claimFocus={setLastFocusedEditor} autoFocus height="60cqh">
                             <div className="d-flex align-items-center">
                                 {bytecount}
                                 {literate ? (
@@ -209,7 +209,7 @@ export function Theseus({ permalink }: TheseusProps) {
                                 ) : null}
                             </div>
                         </Editor>
-                        <Editor utilWorker={utilWorker} code={footer} setCode={setFooter} settings={settingsState} literate={literate} claimFocus={setLastFocusedEditor} height="20cqh">
+                        <Editor utilWorker={utilWorker} initialValue={permalink?.footer ?? ""} setCode={setFooter} settings={settingsState} literate={literate} claimFocus={setLastFocusedEditor} height="20cqh">
                             Footer
                         </Editor>
                     </Suspense>
