@@ -69,7 +69,6 @@
         "immer": "^10.0.3",
         "lezer-loader": "^0.3.0",
         "magic-snowflakes": "^6.3.0",
-        "msgpackr": "^1.11.2",
         "react": "^18.2.0",
         "react-bootstrap": "^2.10.1",
         "react-dom": "^18.2.0",

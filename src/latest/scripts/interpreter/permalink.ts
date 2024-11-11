@@ -1,6 +1,5 @@
 import compatRaw from "../../data/compat.json?raw";
-import { gunzipString, gzipUint8Array } from "gzip-utils";
-import { pack, unpack } from "msgpackr";
+import { gunzipString, gzipString } from "gzip-utils";
 
 const compat = JSON.parse(compatRaw);
 
@@ -30,9 +29,7 @@ function incompatible(permalinkVersion: string) {
 }
 
 export function encodeHash(permalink: Omit<Permalink, "format">): Promise<string> {
-    // probably not great for performance but whatever
-    const buf = new Uint8Array([0xff, ...pack({ format: latestPermalink, ...permalink } as Permalink)]);
-    return gzipUint8Array(buf, "base64url") as Promise<string>;
+    return gzipString(JSON.stringify({ format: latestPermalink, ...permalink } as Permalink), "base64url") as Promise<string>;
 }
 
 type DecodeResult = {
@@ -46,15 +43,7 @@ type DecodeResult = {
 export async function decodeHash(hash: string): Promise<DecodeResult | null> {
     let permalink: OldPermalinks | Permalink;
     try {
-        // First try compressed permalinks
-        const decompressed = await gunzipString(hash, "base64url", "raw") as Uint8Array;
-        if (decompressed[0] == 0xff) {
-            // msgpack
-            permalink = unpack(decompressed.slice(1));
-        } else {
-            // JSON
-            permalink = JSON.parse(new TextDecoder().decode(decompressed));
-        }
+        permalink = JSON.parse(await gunzipString(hash, "base64url", "utf8") as string);
     } catch (decompressError) {
         // Try to decode it as a non-compressed permalink
         try {
