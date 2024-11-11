@@ -24,7 +24,7 @@ function SettingsSwitch({ name, checked, onChange, disabled, children }: Setting
         setSettings((settings) => {
             onChange(event.target.checked, settings);
         });
-    }, [onChange]);
+    }, [onChange, setSettings]);
     return <div>
         <FormCheck
             type="switch"
@@ -106,7 +106,7 @@ export const SettingsDialog = memo(function({ settings, setSettings, timeout, se
         };
         document.addEventListener("keydown", listener);
         return () => document.removeEventListener("keydown", listener);
-    }, [eggProgress, settings]);
+    }, [eggProgress, setSettings, settings]);
 
     return <Modal show={show} onHide={() => setShow(false)}>
         <Modal.Header closeButton>

@@ -142,7 +142,7 @@ export function InputList({ inputs, dispatchInputs, state, run }: InputListProps
         if (state.name == "running") {
             scrollTo(state.group);
         }
-    }, [state]);
+    }, [state, scrollTo]);
 
     return <DragDropContext onDragEnd={onDragEnd}>
         <div ref={inputListRef}>

@@ -20,7 +20,7 @@ type VyTerminalProps = {
 const VyTerminal = forwardRef(function VyTerminal({ onRunningGroupChanged, onReady }: VyTerminalProps, ref: ForwardedRef<VyTerminalRef>) {
     const wrapperRef = useRef(null);
     const elementData = useContext(ElementDataContext)!;
-    const runner = useMemo(() => new VyRunner(splashes.trim().split("\n"), elementData!.version), []);
+    const runner = useMemo(() => new VyRunner(splashes.trim().split("\n"), elementData!.version), [elementData]);
 
     const runningGroupChangedCallback = useCallback((e: VyRunnerEvents["runningGroupChanged"]) => {
         console.log(e.detail.group);
@@ -52,7 +52,7 @@ const VyTerminal = forwardRef(function VyTerminal({ onRunningGroupChanged, onRea
             runner.detach();
             runner.removeEventListener("runningGroupChanged", runningGroupChangedCallback);
         };
-    }, []);
+    }, [onReady, runner, runningGroupChangedCallback]);
 
     return <div ref={wrapperRef} className="terminal-wrapper"></div>;
 });

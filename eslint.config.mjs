@@ -16,7 +16,7 @@ const compat = new FlatCompat({
 });
 
 export default [
-    ...compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended"),
+    ...compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended", "plugin:react-hooks/recommended"),
     {
         ignores: ["*.cjs", "src/**/historic/*", "dist/*"],
     },

@@ -78,7 +78,7 @@ export default function Editor({ utilWorker, initialValue, children, setCode, se
     const editorRef = useRef<ReactCodeMirrorRef | null>(null);
     const onChange = useCallback((code: string) => {
         setCode(code);
-    }, []);
+    }, [setCode]);
     const [headerDom, setHeaderDom] = useState<HTMLElement | null>(null);
     const header = useMemo(() => showPanel.of(() => {
         const dom = document.createElement("div");
@@ -91,13 +91,13 @@ export default function Editor({ utilWorker, initialValue, children, setCode, se
             claimFocus(editorRef.current);
         }
         return null;
-    }), []);
+    }), [claimFocus]);
 
     const languageExtensions = useMemo(() => literate ? [
         vyxalLiterate, vyxalLitCompletion(elementData), elementTooltip(elementData, true),
     ] : [
         vyxal, vyxalCompletion(elementData), vyxalHover(utilWorker), elementTooltip(elementData, false), compressButtonPlugin(utilWorker),
-    ], [literate, utilWorker]);
+    ], [elementData, literate, utilWorker]);
 
     const extensions = [
         commonExtensions, header, focusChangeHandler,

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Header from "./Header";
 import { Spinner, Tab, Nav, Button } from "react-bootstrap";
 import { useImmer, useImmerReducer } from "use-immer";
@@ -46,7 +46,7 @@ type TheseusProps = {
 
 export function Theseus({ permalink }: TheseusProps) {
     const elementData = useContext(ElementDataContext)!;
-    const utilWorker = new UtilWorker(elementData.codepage);
+    const utilWorker = useMemo(() => new UtilWorker(elementData.codepage), [elementData]);
 
     const [settingsState, settings, setSettings] = useSettings();
     const [timeout, setTimeout] = useState<number | null>(10);
@@ -117,7 +117,7 @@ export function Theseus({ permalink }: TheseusProps) {
             inputs: inputs.map(({ name, inputs }) => [name, inputs.map(({ input }) => input)]),
             version: elementData.version,
         }).then((hash) => history.replaceState(undefined, "", "#" + hash));
-    }, [header, code, footer, flags, inputs]);
+    }, [header, code, footer, flags, inputs, elementData]);
 
     useEffect(() => {
         const listener = () => {
@@ -132,11 +132,11 @@ export function Theseus({ permalink }: TheseusProps) {
 
     useEffect(() => {
         utilWorker.formatBytecount(code, literate).then(setBytecount);
-    }, [code, flags]);
+    }, [code, flags, utilWorker, literate]);
 
     const literateToSbcs = useCallback(async() => {
         runnerRef.current?.showMessage(`\x1b[1mSBCS translation:\x1b[0m\n${await utilWorker.sbcsify(code)}`);
-    }, [code, runnerRef]);
+    }, [code, runnerRef, utilWorker]);
 
     const onRunClicked = useCallback((group: number | null) => {
         if (runnerRef.current != null) {
