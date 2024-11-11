@@ -45,14 +45,19 @@ const VyTerminal = forwardRef(function VyTerminal({ onRunningGroupChanged, onRea
     });
 
     useEffect(() => {
-        runner.attach(wrapperRef.current!);
         runner.addEventListener("runningGroupChanged", runningGroupChangedCallback);
         runner.addEventListener("ready", () => onReady?.() as void, { once: true });
         return () => {
-            runner.detach();
             runner.removeEventListener("runningGroupChanged", runningGroupChangedCallback);
         };
     }, [onReady, runner, runningGroupChangedCallback]);
+
+    useEffect(() => {
+        runner.attach(wrapperRef.current!);
+        return () => {
+            runner.detach();
+        };
+    }, [runner]);
 
     return <div ref={wrapperRef} className="terminal-wrapper"></div>;
 });

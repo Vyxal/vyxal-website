@@ -242,18 +242,18 @@ export function Theseus({ permalink }: TheseusProps) {
                                 >
                                     <VyTerminal
                                         ref={runnerRef}
-                                        onRunningGroupChanged={(group) => {
+                                        onRunningGroupChanged={useCallback((group) => {
                                             if (group != null) {
                                                 setState({ name: "running", group });
                                             } else {
                                                 setState({ name: "idle" });
                                             }
-                                        }}
-                                        onReady={() => {
+                                        }, [])}
+                                        onReady={useCallback(() => {
                                             if (autorun) {
                                                 onRunClicked(null);
                                             }
-                                        }}
+                                        }, [autorun, onRunClicked])}
                                     />
                                 </Suspense>
                             </Tab.Pane>
