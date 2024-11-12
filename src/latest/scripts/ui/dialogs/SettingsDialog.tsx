@@ -1,4 +1,4 @@
-import { ChangeEvent, Dispatch, ReactNode, SetStateAction, createContext, memo, useCallback, useContext, useEffect, useRef } from "react";
+import { ChangeEvent, Dispatch, ReactNode, SetStateAction, createContext, memo, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Button, FormCheck, FormLabel, FormText, Modal, ToggleButton, ToggleButtonGroup } from "react-bootstrap";
 import { ElementsSide, Settings, ThemeSetting, isTheSeason } from "../settings";
 import type { Updater } from "use-immer";
@@ -89,6 +89,7 @@ type SettingsDialogProps = {
 };
 
 export const SettingsDialog = memo(function({ settings, setSettings, timeout, setTimeout, show, setShow }: SettingsDialogProps) {
+    const [showPride, setShowPride] = useState(false);
     const eggProgress = useRef(0);
     useEffect(() => {
         const listener = (event: KeyboardEvent) => {
@@ -166,8 +167,25 @@ export const SettingsDialog = memo(function({ settings, setSettings, timeout, se
             </SettingsContext.Provider>
         </Modal.Body>
         <Modal.Footer>
-            {/* @ts-expect-error VERSION gets replaced by Webpack */}
-            <span className="me-auto form-text font-monospace">{VERSION}</span>
+            <span className="flex-grow-1 form-text font-monospace" style={{ clipPath: "content-box", lineHeight: "normal" }}>
+                <span className="user-select-none" onPointerEnter={() => setShowPride(true)} onPointerLeave={() => setShowPride(false)}>◈&nbsp;</span>
+                <span className="position-relative">
+                    <div
+                        className="position-absolute d-flex flex-column top-0 start-0"
+                        style={{
+                            width: "max-content",
+                            transition: "transform 0.2s ease-out",
+                            transform: showPride ? "translateY(-1lh)" : "",
+                        }}
+                    >
+                        <span>
+                            {/* @ts-expect-error VERSION gets replaced by Webpack */}
+                            theseus@<a href={`https://github.com/Vyxal/vyxal.github.io/commit/${VERSION}`}>{VERSION}</a>
+                        </span>
+                        <span>trans rights are human rights</span>
+                    </div>
+                </span>
+            </span>
             <Button variant="primary" onClick={() => setShow(false)}>
                 Close
             </Button>
