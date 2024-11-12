@@ -1,10 +1,18 @@
 import { enableMapSet } from "immer";
 import { createRoot } from "react-dom/client";
-import { decodeHash } from "./interpreter/permalink";
-import { ElementDataContext, parseElementData } from "./interpreter/element-data";
+import { decodeHash, Permalink } from "./interpreter/permalink";
+import { ElementData, ElementDataContext, parseElementData } from "./interpreter/element-data";
 import { Theseus } from "./ui/Theseus";
 import { ErrorBoundary } from "react-error-boundary";
 import { CatastrophicFailure } from "./ui/CatastrophicFailure";
+
+function Root({ elementData, permalink }: { elementData: ElementData, permalink: Permalink | null }) {
+    return <ElementDataContext.Provider value={elementData}>
+        <ErrorBoundary fallbackRender={CatastrophicFailure}>
+            <Theseus permalink={permalink} />
+        </ErrorBoundary>
+    </ElementDataContext.Provider>;
+}
 
 enableMapSet();
 const root = createRoot(document.getElementById("react-container")!);
@@ -16,11 +24,9 @@ if (permalink != null && !permalink.compatible) {
 } else {
     // @ts-expect-error DATA_URI gets replaced by Webpack
     const elementData = parseElementData(await fetch(`${DATA_URI}/theseus.json`).then((r) => r.json()));
-    root.render(
-        <ElementDataContext.Provider value={elementData}>
-            <ErrorBoundary fallbackRender={CatastrophicFailure}>
-                <Theseus permalink={permalink?.permalink ?? null} />
-            </ErrorBoundary>
-        </ElementDataContext.Provider>,
-    );
+    root.render(<Root elementData={elementData} permalink={permalink?.permalink ?? null} />);
+    import.meta.webpackHot?.accept("./ui/Theseus", () => {
+        root.unmount();
+        root.render(<Root elementData={elementData} permalink={permalink?.permalink ?? null} />);
+    });
 }
