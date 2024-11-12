@@ -1,6 +1,6 @@
 {
     "name": "vyxal.github.io",
-    "version": "1.0.0",
+    "version": "latest",
     "description": "",
     "main": "src/latest/latest.html",
     "scripts": {
@@ -11,8 +11,8 @@
         "url": "git+https://github.com/Vyxal/vyxal.github.io.git"
     },
     "keywords": [],
-    "author": "",
-    "license": "ISC",
+    "author": "Ginger",
+    "license": "MPL-2.0",
     "bugs": {
         "url": "https://github.com/Vyxal/vyxal.github.io/issues"
     },
