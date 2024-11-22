@@ -1,7 +1,7 @@
 import { Vyxal } from "https://vyxal.github.io/Vyxal/vyxal.js";
 import type { RunRequest } from "./runner-types";
 
-// @ts-expect-error DATA_URI gets replaced by Webpacl
+// @ts-expect-error DATA_URI gets replaced by Webpack
 const dataUri = DATA_URI;
 const dictPromise = Promise.all([
     fetch(`${dataUri}/ShortDictionary.txt`, { cache: "force-cache" }).then((response) => response.text()),
@@ -21,7 +21,7 @@ self.addEventListener("message", function(message: MessageEvent<RunRequest>) {
         });
         Vyxal.execute(
             request.code,
-            request.inputs.join("\n"),
+            request.inputs,
             request.flags.join(""),
             (line: string) => {
                 this.postMessage({

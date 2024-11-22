@@ -21,7 +21,7 @@ declare module 'https://vyxal.github.io/Vyxal/vyxal.js' {
     namespace Vyxal {
         function execute(
             code: string,
-            inputs: string,
+            inputs: string[],
             flags: string,
             printFunc: (line: string) => void,
             errorFunc: (line: string) => void
