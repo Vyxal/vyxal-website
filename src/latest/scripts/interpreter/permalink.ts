@@ -32,6 +32,27 @@ export function encodeHash(permalink: Omit<Permalink, "format">): Promise<string
     return gzipString(JSON.stringify({ format: latestPermalink, ...permalink } as Permalink), "base64url") as Promise<string>;
 }
 
+// escape() polyfill for legacy permalinks
+// https://262.ecma-international.org/5.1/#sec-B.2.1
+const ESCAPE_ALLOWED = new Set([..."ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./"].map((i) => i.charCodeAt(0)));
+function escape(input: string) {
+    let r = "";
+    if (input.length == 0) {
+        return "";
+    }
+    for (let k = 0; k < input.length; k++) {
+        const code = input.charCodeAt(k);
+        if (ESCAPE_ALLOWED.has(code)) {
+            r += input[k];
+        } else if (code < 256) {
+            r += `%${code.toString(16)}`;
+        } else {
+            r += `%u${code.toString(16).padStart(4, "0")}`;
+        }
+    }
+    return r;
+}
+
 type DecodeResult = {
     compatible: true,
     permalink: Permalink,
@@ -49,8 +70,13 @@ export async function decodeHash(hash: string): Promise<DecodeResult | null> {
         try {
             permalink = JSON.parse(decodeURIComponent(atob(hash)));
         } catch (decodeError) {
-            console.warn("Failed to decode permalink!", decompressError, decodeError);
-            return null;
+            // It might be a legacy permalink, try again with the polyfill
+            try {
+                permalink = JSON.parse(decodeURIComponent(escape(atob(hash))));
+            } catch (legacyDecodeError) {
+                console.warn("Failed to decode permalink!", decompressError, decodeError, legacyDecodeError);
+                return null;
+            }
         }
         if (permalink instanceof Array) {
             // legacy permalink, we have never used those
