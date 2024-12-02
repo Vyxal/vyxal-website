@@ -31,7 +31,7 @@ export type Settings = Omit<SettingsState, "theme"> & {
 const defaultSettings: Settings = {
     theme: "System",
     literateByDefault: false,
-    snowing: "yes",
+    snowing: "no",
     highlightBrackets: "yes",
     elementsSide: "Right",
 };
