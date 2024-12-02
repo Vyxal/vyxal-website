@@ -14,18 +14,22 @@ export interface VyTerminalRef {
 
 type VyTerminalProps = {
     onRunningGroupChanged: (group: number | null) => unknown,
+    onGroupSucceeded: (group: number) => unknown,
     onReady?: () => unknown,
 };
 
-const VyTerminal = forwardRef(function VyTerminal({ onRunningGroupChanged, onReady }: VyTerminalProps, ref: ForwardedRef<VyTerminalRef>) {
+const VyTerminal = forwardRef(function VyTerminal({ onRunningGroupChanged, onGroupSucceeded, onReady }: VyTerminalProps, ref: ForwardedRef<VyTerminalRef>) {
     const wrapperRef = useRef(null);
     const elementData = useContext(ElementDataContext)!;
     const runner = useMemo(() => new VyRunner(splashes.trim().split("\n"), elementData!.version), [elementData]);
 
     const runningGroupChangedCallback = useCallback((e: VyRunnerEvents["runningGroupChanged"]) => {
-        console.log(e.detail.group);
         onRunningGroupChanged(e.detail.group);
     }, [onRunningGroupChanged]);
+
+    const groupSucceededCallback = useCallback((e: VyRunnerEvents["groupSucceeded"]) => {
+        onGroupSucceeded(e.detail.group);
+    }, [onGroupSucceeded]);
 
     useImperativeHandle(ref, () => {
         return {
@@ -46,11 +50,12 @@ const VyTerminal = forwardRef(function VyTerminal({ onRunningGroupChanged, onRea
 
     useEffect(() => {
         runner.addEventListener("runningGroupChanged", runningGroupChangedCallback);
+        runner.addEventListener("groupSucceeded", groupSucceededCallback);
         runner.addEventListener("ready", () => onReady?.() as void, { once: true });
         return () => {
             runner.removeEventListener("runningGroupChanged", runningGroupChangedCallback);
         };
-    }, [onReady, runner, runningGroupChangedCallback]);
+    }, [onReady, runner, runningGroupChangedCallback, groupSucceededCallback]);
 
     useEffect(() => {
         runner.attach(wrapperRef.current!);

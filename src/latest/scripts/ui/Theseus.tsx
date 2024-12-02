@@ -63,7 +63,7 @@ export function Theseus({ permalink }: TheseusProps) {
     const [header, setHeader] = useState(permalink?.header ?? "");
     const [code, setCode] = useState(permalink?.code ?? "");
     const [footer, setFooter] = useState(permalink?.footer ?? "");
-    const [inputs, dispatchInputs] = useImmerReducer(inputsReducer, permalink?.inputs?.map(([name, inputs]) => ({ name, inputs: inputs.map((input) => ({ id: crypto.randomUUID(), input })) })) ?? []);
+    const [inputs, dispatchInputs] = useImmerReducer(inputsReducer, permalink?.inputs?.map(([name, inputs]) => ({ name, inputs: inputs.map((input) => ({ id: crypto.randomUUID(), input })), succeeded: false })) ?? []);
     const [bytecount, setBytecount] = useState("...");
     const autorun = (header + code + footer).length > 0;
 
@@ -139,6 +139,7 @@ export function Theseus({ permalink }: TheseusProps) {
     }, [code, runnerRef, utilWorker]);
 
     const onRunClicked = useCallback((group: number | null) => {
+        dispatchInputs({ type: "reset-successes" });
         if (runnerRef.current != null) {
             switch (state.name) {
                 case "starting":
@@ -151,7 +152,7 @@ export function Theseus({ permalink }: TheseusProps) {
                     break;
             }
         }
-    }, [code, flags, inputs, timeout, runnerRef, state]);
+    }, [code, flags, inputs, timeout, runnerRef, state, dispatchInputs]);
 
     return <>
         <SettingsDialog
@@ -249,6 +250,9 @@ export function Theseus({ permalink }: TheseusProps) {
                                                 setState({ name: "idle" });
                                             }
                                         }, [])}
+                                        onGroupSucceeded={useCallback((group) => {
+                                            dispatchInputs({ type: "set-group-succeeded", group });
+                                        }, [dispatchInputs])}
                                         onReady={useCallback(() => {
                                             if (autorun) {
                                                 onRunClicked(null);

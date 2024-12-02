@@ -1,5 +1,5 @@
 export type Input = { id: string, input: string };
-export type InputGroup = { name: string, inputs: Input[] };
+export type InputGroup = { name: string, inputs: Input[], succeeded: boolean };
 export type Inputs = InputGroup[];
 export type InputsReducerAction = {
     type: "add-group",
@@ -24,12 +24,17 @@ export type InputsReducerAction = {
     group: number,
     input: number,
     content: string,
+} | {
+    type: "set-group-succeeded",
+    group: number,
+} | {
+    type: "reset-successes",
 };
 
 export function inputsReducer(draft: Inputs, action: InputsReducerAction) {
     switch (action.type) {
         case "add-group": {
-            draft.push({ name: `Group ${draft.length + 1}`, inputs: [{ id: crypto.randomUUID(), input: "" }] });
+            draft.push({ name: `Group ${draft.length + 1}`, inputs: [{ id: crypto.randomUUID(), input: "" }], succeeded: false });
             break;
         }
         case "duplicate-group": {
@@ -58,6 +63,15 @@ export function inputsReducer(draft: Inputs, action: InputsReducerAction) {
         }
         case "set-input": {
             draft[action.group].inputs[action.input].input = action.content;
+            break;
+        }
+        case "set-group-succeeded": {
+            draft[action.group].succeeded = true;
+            break;
+        }
+        case "reset-successes": {
+            draft.forEach((group) => group.succeeded = false);
+            break;
         }
     }
 }

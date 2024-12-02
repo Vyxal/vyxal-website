@@ -39,41 +39,44 @@ function InputElement({ group, input, index, onInputChange, onInputDelete }: Inp
 }
 
 type InputGroupElementProps = {
-    group: number,
-    inputs: InputGroup,
+    groupIndex: number,
+    group: InputGroup,
     dispatchInputs: Dispatch<InputsReducerAction>,
     state: RunState,
     run(): unknown,
     scrollTo(group: number): unknown,
 };
 
-function InputGroupElement({ group, inputs: { name, inputs }, dispatchInputs, state, run, scrollTo }: InputGroupElementProps) {
+function InputGroupElement({ groupIndex, group: { name, inputs, succeeded }, dispatchInputs, state, run, scrollTo }: InputGroupElementProps) {
     return <div className="d-flex flex-column border rounded mb-2 mx-2">
         <div className="hstack bg-body-secondary p-2 border-bottom rounded-top">
-            <BsInputGroup>
-                <Button
-                    variant={state.name == "running" && state.group == group ? "danger" : "success"}
-                    onClick={() => run()}
-                    disabled={(state.name == "running" && state.group != group) || state.name == "starting"}
-                >
-                    {
-                        (state.name == "running" && state.group == group) ? (
-                            <Spinner as="span" animation="border" role="status" className="spinner-border-sm">
-                                <span className="visually-hidden">Running program</span>
-                            </Spinner>
-                        ) : (
-                            <i className="bi bi-play-fill"></i>
-                        )
-                    }
-                </Button>
-                <FormControl
-                    type="text"
-                    value={name}
-                    onInput={(e) => dispatchInputs({ type: "rename-group", group, name: e.currentTarget.value })}
-                    style={{ maxWidth: "200px" }}
-                />
-            </BsInputGroup>
-            <Button variant="secondary-bg" className="ms-auto me-2" onClick={() => dispatchInputs({ type: "delete-group", group })}>
+            <div className="position-relative">
+                <BsInputGroup className="w-auto">
+                    <Button
+                        variant={state.name == "running" && state.group == groupIndex ? "danger" : "success"}
+                        onClick={() => run()}
+                        disabled={(state.name == "running" && state.group != groupIndex) || state.name == "starting"}
+                    >
+                        {
+                            (state.name == "running" && state.group == groupIndex) ? (
+                                <Spinner as="span" animation="border" role="status" className="spinner-border-sm">
+                                    <span className="visually-hidden">Running program</span>
+                                </Spinner>
+                            ) : (
+                                <i className="bi bi-play-fill"></i>
+                            )
+                        }
+                    </Button>
+                    <FormControl
+                        type="text"
+                        value={name}
+                        onInput={(e) => dispatchInputs({ type: "rename-group", group: groupIndex, name: e.currentTarget.value })}
+                        style={{ maxWidth: "200px" }}
+                    />
+                </BsInputGroup>
+                {succeeded && <i className="bi bi-check-square text-success position-absolute top-50 end-0 translate-middle-y me-2 bg-body"></i>}
+            </div>
+            <Button variant="secondary-bg" className="ms-auto me-2" onClick={() => dispatchInputs({ type: "delete-group", group: groupIndex })}>
                 <i className="bi bi-trash2"></i>
             </Button>
             <Button
@@ -81,14 +84,14 @@ function InputGroupElement({ group, inputs: { name, inputs }, dispatchInputs, st
                 className="me-2"
                 onClick={() => {
                     flushSync(() => {
-                        dispatchInputs({ type: "duplicate-group", group });
+                        dispatchInputs({ type: "duplicate-group", group: groupIndex });
                     });
-                    scrollTo(group + 1);
+                    scrollTo(groupIndex + 1);
                 }}
             >
                 <i className="bi bi-copy"></i>
             </Button>
-            <Button variant="primary" onClick={() => dispatchInputs({ type: "append-input", group })}>
+            <Button variant="primary" onClick={() => dispatchInputs({ type: "append-input", group: groupIndex })}>
                 <i className="bi bi-plus-circle"></i>
             </Button>
         </div>
@@ -96,17 +99,17 @@ function InputGroupElement({ group, inputs: { name, inputs }, dispatchInputs, st
             <div className="m-2 text-center fs-6 info-text">
                 <small>No inputs. Click <i className="bi bi-plus-circle"></i> to add one.</small>
             </div>
-        ) : <Droppable droppableId={group.toString()} type={`group-${group}`}>
+        ) : <Droppable droppableId={groupIndex.toString()} type={`group-${groupIndex}`}>
             {(provided) => {
                 return <div ref={provided.innerRef} className="vstack mt-2" {...provided.droppableProps}>
                     {inputs.map((input, index) => (
                         <InputElement
                             key={input.id}
-                            group={group}
+                            group={groupIndex}
                             input={input}
                             index={index}
-                            onInputChange={(input) => dispatchInputs({ type: "set-input", group, input: index, content: input })}
-                            onInputDelete={() => dispatchInputs({ type: "delete-input", group, input: index })}
+                            onInputChange={(input) => dispatchInputs({ type: "set-input", group: groupIndex, input: index, content: input })}
+                            onInputDelete={() => dispatchInputs({ type: "delete-input", group: groupIndex, input: index })}
                         />
                     ))}
                     {provided.placeholder}
@@ -149,8 +152,8 @@ export function InputList({ inputs, dispatchInputs, state, run }: InputListProps
             {inputs.length > 0 ? inputs.map((inputs, index) => (
                 <InputGroupElement
                     key={index}
-                    group={index}
-                    inputs={inputs}
+                    groupIndex={index}
+                    group={inputs}
                     dispatchInputs={dispatchInputs}
                     run={() => run(index)}
                     scrollTo={scrollTo}

@@ -13,6 +13,7 @@ export enum TerminateReason {
 export type VyRunnerEvents = {
     ready: Event,
     runningGroupChanged: CustomEvent<{ group: number | null }>,
+    groupSucceeded: CustomEvent<{ group: number }>,
 };
 
 export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
@@ -20,7 +21,7 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
     private fit: FitAddon | null;
     private worker: Promise<Worker>;
     private workerCounter = 0;
-    private outputBuffer: string[] = [];
+    private outputBuffer: string[][] = [];
     private _state: "idle" | "booting" | "running" = "booting";
     private splashes: string[];
     private version: string;
@@ -122,8 +123,9 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
                 }
                 case "stdout":{
                     this.terminal.write(data.text);
-                    this.outputBuffer.push(data.text);
-                    this.outputBuffer.length = Math.min(this.outputBuffer.length, MAX_BUFFER_SIZE);
+                    const buffer = this.outputBuffer.at(-1)!;
+                    buffer.push(data.text);
+                    buffer.length = Math.min(buffer.length, MAX_BUFFER_SIZE);
                     break;
                 }
                 case "stderr":{
@@ -140,6 +142,11 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
                     }
                     const now = performance.now();
                     this.terminal?.writeln(`\n\x1b[0G\x1b[0;2mFinished in ${Math.round((now - this.groupStartedAt)) / 1000} seconds\x1b[0m`);
+                    if (this.outputBuffer.at(-1)!.join("").trim() == this.inputs[this.currentGroup].name) {
+                        this.dispatchTypedEvent("groupSucceeded", new CustomEvent(
+                            "groupSucceeded", { detail: { group: this.currentGroup } },
+                        ));
+                    }
                     if (this.runAllGroups && this.inputs.length > 0 && ++this.currentGroup != this.inputs.length && this._state == "running") {
                         this.runNextGroup(this.code, this.flags);
                     } else {
@@ -159,6 +166,7 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
         if (group != undefined) {
             this.terminal?.writeln(`\x1b[92mRunning group: ${group.name}\x1b[0m`);
         }
+        this.outputBuffer.push([]);
         return this.worker.then((worker) => {
             this.groupStartedAt = performance.now();
             if (this.timeout != null) {
