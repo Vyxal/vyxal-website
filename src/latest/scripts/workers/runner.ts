@@ -8,7 +8,7 @@ const dictPromise = Promise.all([
     fetch(`${dataUri}/LongDictionary.txt`, { cache: "force-cache" }).then((response) => response.text()),
 ]).then((responses) => {
     Vyxal.setShortDict(responses[0]);
-    Vyxal.setLongDict(responses[0]);
+    Vyxal.setLongDict(responses[1]);
 });
 
 self.addEventListener("message", function(message: MessageEvent<RunRequest>) {
