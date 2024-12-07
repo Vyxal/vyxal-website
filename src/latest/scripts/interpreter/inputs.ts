@@ -58,7 +58,7 @@ export function inputsReducer(draft: Inputs, action: InputsReducerAction) {
             break;
         }
         case "delete-input": {
-            draft[action.group].inputs.splice(action.input);
+            draft[action.group].inputs.splice(action.input, 1);
             break;
         }
         case "set-input": {
