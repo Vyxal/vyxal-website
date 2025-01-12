@@ -7,7 +7,6 @@ export const vyxalLanguage = LRLanguage.define({
         props: [
             styleTags({
                 Digraph: tags.function(tags.propertyName),
-                SugarTrigraph: tags.macroName,
                 SyntaxTrigraph: tags.operator,
                 StructureOpen: tags.bracket,
                 StructureClose: tags.bracket,
