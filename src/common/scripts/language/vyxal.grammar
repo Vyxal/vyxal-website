@@ -23,7 +23,7 @@ AnyString {
   Branch {"|"}
   ListStuff { "#[" | "#]"}
   StructureOpen {"₳" | "{" | "⎄" | "(" | "ƛ" | "#{" | "λ" | "Ω" | "⎊" | "µ" | "["}
-  StructureClose {"}" | "]" | "⎋" | "⍟" | ")" | "#]"}
+  StructureClose {"}" | "]" | "⎋" | "⍟" | ")"}
   String {'"' (!["„”“\\] | "\\" _)* $["„”“]}
   SingleCharString { "'" _ }
   TwoCharString { "Ꮬ" _ _ }
