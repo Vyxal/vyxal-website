@@ -1,5 +1,5 @@
 
-top Program {(Word) +}
+@top Program {(Word) +}
 
 structure<term> { @specialize[@name={term}]<WeirdKW, term> }
 branch<term> { @specialize[@name={term}]<WeirdKW, term> }
