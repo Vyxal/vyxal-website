@@ -22,7 +22,7 @@ AnyString {
   SyntaxTrigraph { "#:" ![[] }
   Branch {"|"}
   ListStuff { "#[" | "#]"}
-  StructureOpen {"₳" | "#[" | "{" | "⎄" | "(" | "ƛ" | "#{" | "λ" | "Ω" | "⎊" | "µ" | "["}
+  StructureOpen {"₳" | "{" | "⎄" | "(" | "ƛ" | "#{" | "λ" | "Ω" | "⎊" | "µ" | "["}
   StructureClose {"}" | "]" | "⎋" | "⍟" | ")" | "#]"}
   String {'"' (!["„”“\\] | "\\" _)* $["„”“]}
   SingleCharString { "'" _ }
@@ -32,4 +32,5 @@ AnyString {
   ContextIndex { "#¤" @digit }
   Element { ![~₳Ωλƛµ⎋⍟⎊⎄⩔Ẅ⎇ᖶ¿∥∦∺⁜⑴⑵⑶⑷⎂⟒ᛞ▦¨"#'().0123456789[\]k{|}ᏜᏐÞ∆ø„”“] }
   @precedence { Space, Element }
-} 
+}  
+    
