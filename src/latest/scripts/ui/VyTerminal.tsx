@@ -22,6 +22,7 @@ const VyTerminal = forwardRef(function VyTerminal({ onRunningGroupChanged, onGro
     const wrapperRef = useRef(null);
     const elementData = useContext(ElementDataContext)!;
     const runner = useMemo(() => new VyRunner(splashes.trim().split("\n"), elementData!.version), [elementData]);
+    const hasInitialized = useRef(false);
 
     const runningGroupChangedCallback = useCallback((e: VyRunnerEvents["runningGroupChanged"]) => {
         onRunningGroupChanged(e.detail.group);
@@ -51,7 +52,10 @@ const VyTerminal = forwardRef(function VyTerminal({ onRunningGroupChanged, onGro
     useEffect(() => {
         runner.addEventListener("runningGroupChanged", runningGroupChangedCallback);
         runner.addEventListener("groupSucceeded", groupSucceededCallback);
-        runner.addEventListener("ready", () => onReady?.() as void, { once: true });
+        if (!hasInitialized.current) {
+            hasInitialized.current = true;
+            runner.addEventListener("ready", () => onReady?.() as void, { once: true });
+        }
         return () => {
             runner.removeEventListener("runningGroupChanged", runningGroupChangedCallback);
         };
