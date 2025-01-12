@@ -142,7 +142,7 @@ export class VyRunner extends TypedEventTarget<VyRunnerEvents> {
                     }
                     const now = performance.now();
                     this.terminal?.writeln(`\n\x1b[0G\x1b[0;2mFinished in ${Math.round((now - this.groupStartedAt)) / 1000} seconds\x1b[0m`);
-                    if (this.outputBuffer.at(-1)!.join("").trim() == this.inputs[this.currentGroup].name) {
+                    if (this.inputs.length > 0 && this.outputBuffer.at(-1)!.join("").trim() == this.inputs[this.currentGroup].name) {
                         this.dispatchTypedEvent("groupSucceeded", new CustomEvent(
                             "groupSucceeded", { detail: { group: this.currentGroup } },
                         ));
