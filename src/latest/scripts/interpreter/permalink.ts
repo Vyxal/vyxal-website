@@ -4,7 +4,7 @@ import { gunzipString, gzipString } from "gzip-utils";
 
 const compat = JSON.parse(compatRaw);
 const releaseDates = JSON.parse(datesRaw);
-const LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION = "latest"
+const LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION = "latest";
 
 type OldPermalinks = {
     format: 2,
@@ -61,7 +61,9 @@ function decodeVersion(version: string): string {
 }
 
 function incompatible(permalinkVersion: string) {
-    if (permalinkVersion === LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION) { return false; }
+    if (permalinkVersion === LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION) {
+        return false; 
+    }
     return compat[permalinkVersion] ?? false;
 }
 
@@ -121,7 +123,7 @@ export async function decodeHash(hash: string): Promise<DecodeResult | null> {
         }
     }
     try {
-        let realVersion = decodeVersion(permalink.version);
+        const realVersion = decodeVersion(permalink.version);
         console.log("Real version:", realVersion);
         console.log("Permalink version:", permalink.version);
         if (incompatible(realVersion)) {
