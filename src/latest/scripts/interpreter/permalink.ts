@@ -55,7 +55,7 @@ function decodeVersion(version: string): string {
     // first release after the given date.
 
     const parsedDates: [string, number][] = Object.entries(releaseDates).map(([v, d]) => [v, Number.parseInt(d as string)]);
-    const candidates = parsedDates.filter(([_, d]) => d > timestamp);
+    const candidates = parsedDates.filter(([, d]) => d > timestamp);
     if (candidates.length === 0) {
         return LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION;
     }
