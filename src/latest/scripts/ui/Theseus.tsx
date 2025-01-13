@@ -135,7 +135,7 @@ export function Theseus({ permalink }: TheseusProps) {
         utilWorker.formatBytecount(code, literate).then(setBytecount);
     }, [code, flags, utilWorker, literate]);
 
-    const literateToSbcs = useCallback(async () => {
+    const literateToSbcs = useCallback(async() => {
         runnerRef.current?.showMessage(`\x1b[1mSBCS translation:\x1b[0m\n${await utilWorker.sbcsify(code)}`);
     }, [code, runnerRef, utilWorker]);
 
