@@ -4,7 +4,7 @@ import { gunzipString, gzipString } from "gzip-utils";
 
 const compat = JSON.parse(compatRaw);
 const releaseDates = JSON.parse(datesRaw);
-const LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION = "hacky ahh solution"
+const LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION = "latest"
 
 type OldPermalinks = {
     format: 2,
@@ -16,7 +16,7 @@ type OldPermalinks = {
     version: string,
 };
 
-const latestPermalink = 4;
+const latestPermalink = 3;
 export type Permalink = {
     format: typeof latestPermalink,
     flags: string[],
@@ -28,6 +28,7 @@ export type Permalink = {
 };
 
 function decodeVersion(version: string): string {
+
     // This is what happens when you let lyxal write a hack
     // solution to something that probably required a bigger
     // refactoring. (Comment written by, surprisingly, lyxal)
@@ -51,15 +52,16 @@ function decodeVersion(version: string): string {
     // Now, iterate through the release dates and find the
     // first release after the given date.
 
-    const candidates = Object.entries(releaseDates).filter(([_, d]) => new Date(d.toString()) > date);
+    const parsedDates: [string, Date][] = Object.entries(releaseDates).map(([v, d]) => [v, new Date(Date.parse(d as string))]);
+    const candidates = parsedDates.filter(([_, d]) => new Date(d) > date);
     if (candidates.length === 0) {
         return LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION;
     }
-    return candidates[0][1].toString();
+    return candidates[0][0];
 }
 
 function incompatible(permalinkVersion: string) {
-    if (permalinkVersion === LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION) { return true; }
+    if (permalinkVersion === LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION) { return false; }
     return compat[permalinkVersion] ?? false;
 }
 
@@ -120,8 +122,10 @@ export async function decodeHash(hash: string): Promise<DecodeResult | null> {
     }
     try {
         let realVersion = decodeVersion(permalink.version);
-        if (incompatible(permalink.version)) {
-            return { compatible: false, version: permalink.version };
+        console.log("Real version:", realVersion);
+        console.log("Permalink version:", permalink.version);
+        if (incompatible(realVersion)) {
+            return { compatible: false, version: realVersion };
         }
         switch (permalink.format) {
             case 2: {

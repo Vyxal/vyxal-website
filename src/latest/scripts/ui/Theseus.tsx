@@ -116,7 +116,7 @@ export function Theseus({ permalink }: TheseusProps) {
             footer,
             flags: [...serializeFlags(elementData.flagDefs, flags)],
             inputs: inputs.map(({ name, inputs }) => [name, inputs.map(({ input }) => input)]),
-            version: `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`,
+            version: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`,
         }).then((hash) => history.replaceState(undefined, "", "#" + hash));
     }, [header, code, footer, flags, inputs, elementData]);
 
