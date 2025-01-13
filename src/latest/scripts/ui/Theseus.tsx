@@ -109,7 +109,6 @@ export function Theseus({ permalink }: TheseusProps) {
     }, [settingsState]);
 
     useEffect(() => {
-        const date = new Date();
         encodeHash({
             header,
             code,
