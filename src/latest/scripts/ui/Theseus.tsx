@@ -74,10 +74,10 @@ export function Theseus({ permalink }: TheseusProps) {
 
     const [state, setState] = useState<RunState>({ name: autorun ? "starting" : "idle" });
     const [lastFocusedEditor, setLastFocusedEditor] = useState<ReactCodeMirrorRef | null>(null);
-    
+
     const runnerRef = useRef<VyTerminalRef | null>(null);
     const snowflakesRef = useRef<Snowflakes | null>(null);
-    
+
     useEffect(() => {
         switch (settingsState.theme) {
             case Theme.Dark:
@@ -109,13 +109,14 @@ export function Theseus({ permalink }: TheseusProps) {
     }, [settingsState]);
 
     useEffect(() => {
+        const date = new Date();
         encodeHash({
             header,
             code,
             footer,
             flags: [...serializeFlags(elementData.flagDefs, flags)],
             inputs: inputs.map(({ name, inputs }) => [name, inputs.map(({ input }) => input)]),
-            version: elementData.version,
+            version: `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`,
         }).then((hash) => history.replaceState(undefined, "", "#" + hash));
     }, [header, code, footer, flags, inputs, elementData]);
 
@@ -134,7 +135,7 @@ export function Theseus({ permalink }: TheseusProps) {
         utilWorker.formatBytecount(code, literate).then(setBytecount);
     }, [code, flags, utilWorker, literate]);
 
-    const literateToSbcs = useCallback(async() => {
+    const literateToSbcs = useCallback(async () => {
         runnerRef.current?.showMessage(`\x1b[1mSBCS translation:\x1b[0m\n${await utilWorker.sbcsify(code)}`);
     }, [code, runnerRef, utilWorker]);
 
@@ -174,7 +175,7 @@ export function Theseus({ permalink }: TheseusProps) {
                 if (view != null) {
                     view.dispatch(view.state.replaceSelection(char));
                 }
-            }} 
+            }}
         />
         <div className="w-100 h-100 vstack">
             <Header
