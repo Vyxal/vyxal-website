@@ -33,7 +33,7 @@ function decodeVersion(version: string): string {
     // solution to something that probably required a bigger
     // refactoring. (Comment written by, surprisingly, lyxal)
 
-    // Version will either be `x.y.z` or `dd/mm/yyyy`. So
+    // Version will either be `x.y.z` or a unix timestamp. So
     // determine which one it is. If `x.y.z`, simply return
     // it.
 
@@ -41,19 +41,21 @@ function decodeVersion(version: string): string {
         return version;
     }
 
-    // It's a date, which means fun because that's the whole
+    // It's a timestamp, which means fun because that's the whole
     // point of this function. The version can be determined
     // by finding the first release on a date after the given
     // date.
 
     // But first, convert the string to a date object.
-    const date = new Date(version);
+    // Multiply the "version" by 1000 to convert it to
+    // milliseconds.
+    const timestamp = Number.parseInt(version);
 
     // Now, iterate through the release dates and find the
     // first release after the given date.
 
-    const parsedDates: [string, Date][] = Object.entries(releaseDates).map(([v, d]) => [v, new Date(Date.parse(d as string))]);
-    const candidates = parsedDates.filter(([_, d]) => new Date(d) > date);
+    const parsedDates: [string, number][] = Object.entries(releaseDates).map(([v, d]) => [v, Number.parseInt(d as string)]);
+    const candidates = parsedDates.filter(([_, d]) => d > timestamp);
     if (candidates.length === 0) {
         return LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION;
     }
@@ -62,7 +64,7 @@ function decodeVersion(version: string): string {
 
 function incompatible(permalinkVersion: string) {
     if (permalinkVersion === LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION) {
-        return false; 
+        return false;
     }
     return compat[permalinkVersion] ?? false;
 }

@@ -20,8 +20,7 @@ const fallback = document.getElementById("fallback-ui")!;
 fallback.hidden = true;
 const permalink = window.location.hash.length ? await decodeHash(window.location.hash.slice(1)) : null;
 if (permalink != null && !permalink.compatible) {
-    console.error("Incompatible permalink version!", permalink.version);
-    // window.location.replace(`https://vyxal.github.io/versions/v${permalink.version}#${location.hash.substring(1)}`);
+    window.location.replace(`https://vyxal.github.io/versions/v${permalink.version}#${location.hash.substring(1)}`);
 
 } else {
     // @ts-expect-error DATA_URI gets replaced by Webpack

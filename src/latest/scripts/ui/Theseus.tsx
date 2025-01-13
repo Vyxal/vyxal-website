@@ -116,7 +116,7 @@ export function Theseus({ permalink }: TheseusProps) {
             footer,
             flags: [...serializeFlags(elementData.flagDefs, flags)],
             inputs: inputs.map(({ name, inputs }) => [name, inputs.map(({ input }) => input)]),
-            version: `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`,
+            version: `${Date.now()}`,
         }).then((hash) => history.replaceState(undefined, "", "#" + hash));
     }, [header, code, footer, flags, inputs, elementData]);
 
@@ -135,7 +135,7 @@ export function Theseus({ permalink }: TheseusProps) {
         utilWorker.formatBytecount(code, literate).then(setBytecount);
     }, [code, flags, utilWorker, literate]);
 
-    const literateToSbcs = useCallback(async() => {
+    const literateToSbcs = useCallback(async () => {
         runnerRef.current?.showMessage(`\x1b[1mSBCS translation:\x1b[0m\n${await utilWorker.sbcsify(code)}`);
     }, [code, runnerRef, utilWorker]);
 
