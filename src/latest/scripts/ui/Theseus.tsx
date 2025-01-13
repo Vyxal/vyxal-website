@@ -74,10 +74,10 @@ export function Theseus({ permalink }: TheseusProps) {
 
     const [state, setState] = useState<RunState>({ name: autorun ? "starting" : "idle" });
     const [lastFocusedEditor, setLastFocusedEditor] = useState<ReactCodeMirrorRef | null>(null);
-    
+
     const runnerRef = useRef<VyTerminalRef | null>(null);
     const snowflakesRef = useRef<Snowflakes | null>(null);
-    
+
     useEffect(() => {
         switch (settingsState.theme) {
             case Theme.Dark:
@@ -115,7 +115,7 @@ export function Theseus({ permalink }: TheseusProps) {
             footer,
             flags: [...serializeFlags(elementData.flagDefs, flags)],
             inputs: inputs.map(({ name, inputs }) => [name, inputs.map(({ input }) => input)]),
-            version: elementData.version,
+            version: `${Date.now()}`,
         }).then((hash) => history.replaceState(undefined, "", "#" + hash));
     }, [header, code, footer, flags, inputs, elementData]);
 
@@ -174,7 +174,7 @@ export function Theseus({ permalink }: TheseusProps) {
                 if (view != null) {
                     view.dispatch(view.state.replaceSelection(char));
                 }
-            }} 
+            }}
         />
         <div className="w-100 h-100 vstack">
             <Header

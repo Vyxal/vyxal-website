@@ -1,7 +1,10 @@
 import compatRaw from "../../data/compat.json?raw";
+import datesRaw from "../../data/releaseDates.json?raw";
 import { gunzipString, gzipString } from "gzip-utils";
 
 const compat = JSON.parse(compatRaw);
+const releaseDates = JSON.parse(datesRaw);
+const LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION = "latest";
 
 type OldPermalinks = {
     format: 2,
@@ -24,7 +27,45 @@ export type Permalink = {
     version: string,
 };
 
+function decodeVersion(version: string): string {
+
+    // This is what happens when you let lyxal write a hack
+    // solution to something that probably required a bigger
+    // refactoring. (Comment written by, surprisingly, lyxal)
+
+    // Version will either be `x.y.z` or a unix timestamp. So
+    // determine which one it is. If `x.y.z`, simply return
+    // it.
+
+    if (version.includes(".")) {
+        return version;
+    }
+
+    // It's a timestamp, which means fun because that's the whole
+    // point of this function. The version can be determined
+    // by finding the first release on a date after the given
+    // date.
+
+    // But first, convert the string to a date object.
+    // Multiply the "version" by 1000 to convert it to
+    // milliseconds.
+    const timestamp = Number.parseInt(version);
+
+    // Now, iterate through the release dates and find the
+    // first release after the given date.
+
+    const parsedDates: [string, number][] = Object.entries(releaseDates).map(([v, d]) => [v, Number.parseInt(d as string)]);
+    const candidates = parsedDates.filter(([, d]) => d > timestamp);
+    if (candidates.length === 0) {
+        return LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION;
+    }
+    return candidates[0][0];
+}
+
 function incompatible(permalinkVersion: string) {
+    if (permalinkVersion === LATEST_VYXAL_VERSION_CONSTANT_RETURNED_FROM_DETERMINE_VERSION) {
+        return false;
+    }
     return compat[permalinkVersion] ?? false;
 }
 
@@ -84,8 +125,11 @@ export async function decodeHash(hash: string): Promise<DecodeResult | null> {
         }
     }
     try {
-        if (incompatible(permalink.version)) {
-            return { compatible: false, version: permalink.version };
+        const realVersion = decodeVersion(permalink.version);
+        console.log("Real version:", realVersion);
+        console.log("Permalink version:", permalink.version);
+        if (incompatible(realVersion)) {
+            return { compatible: false, version: realVersion };
         }
         switch (permalink.format) {
             case 2: {
